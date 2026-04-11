@@ -1,0 +1,268 @@
+.gfgs-editor {
+    background: #fff;
+    border: 1px solid var(--gfgs-border);
+    border-radius: var(--gfgs-radius);
+    box-shadow: var(--gfgs-shadow);
+    padding: 24px;
+    margin-top: 16px;
+}
+
+.gfgs-editor h3 {
+    margin: 0 0 20px;
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.gfgs-field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 16px;
+}
+
+.gfgs-field-row.full {
+    grid-template-columns: 1fr;
+}
+
+.gfgs-label {
+    display: block;
+    font-weight: 600;
+    font-size: .85rem;
+    color: #444;
+    margin-bottom: 6px;
+}
+
+.gfgs-input,
+.gfgs-select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--gfgs-border);
+    border-radius: 4px;
+    font-size: .9rem;
+    transition: border-color .2s;
+}
+
+.gfgs-input:focus,
+.gfgs-select:focus {
+    outline: none;
+    border-color: var(--gfgs-blue);
+    box-shadow: 0 0 0 2px rgba(29, 111, 164, .15);
+}
+
+/* ── Field mapping table ────────────────────────────────────────── */
+.gfgs-map-section {
+    margin-top: 24px;
+}
+
+.gfgs-map-section h4 {
+    font-size: .95rem;
+    color: #333;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--gfgs-border);
+    padding-bottom: 8px;
+}
+
+.gfgs-map-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.gfgs-map-table th,
+.gfgs-map-table td {
+    padding: 8px 10px;
+}
+
+.gfgs-map-table th {
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #666;
+    font-weight: 600;
+    background: var(--gfgs-gray);
+}
+
+.gfgs-map-table td {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.gfgs-map-table select,
+.gfgs-map-table input {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--gfgs-border);
+    border-radius: 4px;
+    font-size: .85rem;
+}
+
+.gfgs-map-row-remove {
+    background: none;
+    border: none;
+    color: var(--gfgs-red);
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 4px 6px;
+    border-radius: 4px;
+}
+
+.gfgs-map-row-remove:hover {
+    background: #fff5f5;
+}
+
+.gfgs-add-row-btn {
+    margin-top: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f0f7ff;
+    color: var(--gfgs-blue);
+    border: 1px dashed var(--gfgs-blue);
+    border-radius: 4px;
+    padding: 6px 14px;
+    cursor: pointer;
+    font-size: .85rem;
+    transition: all .2s;
+}
+
+.gfgs-add-row-btn:hover {
+    background: #ddeeff;
+}
+
+/* ── Condition block ────────────────────────────────────────────── */
+.gfgs-condition-section {
+    margin-top: 24px;
+    background: #fafafa;
+    border: 1px solid var(--gfgs-border);
+    border-radius: var(--gfgs-radius);
+    padding: 16px;
+}
+
+.gfgs-condition-section h4 {
+    margin: 0 0 12px;
+    font-size: .9rem;
+    color: #333;
+}
+
+.gfgs-condition-row {
+    display: grid;
+    grid-template-columns: 1fr 120px 1fr auto;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.gfgs-condition-row select,
+.gfgs-condition-row input {
+    padding: 6px 8px;
+    border: 1px solid var(--gfgs-border);
+    border-radius: 4px;
+    font-size: .85rem;
+}
+
+/* ── Refresh button ─────────────────────────────────────────────── */
+.gfgs-refresh-btn {
+    background: none;
+    border: 1px solid var(--gfgs-border);
+    border-radius: 4px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: .8rem;
+    color: #555;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+}
+
+.gfgs-refresh-btn:hover {
+    background: var(--gfgs-gray);
+}
+
+.gfgs-refresh-btn.spinning svg {
+    animation: gfgs-spin .7s linear infinite;
+}
+
+@keyframes gfgs-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── Form footer ────────────────────────────────────────────────── */
+.gfgs-editor-footer {
+    display: flex;
+    gap: 10px;
+    margin-top: 28px;
+    padding-top: 16px;
+    border-top: 1px solid var(--gfgs-border);
+}
+
+/* ── Empty state ────────────────────────────────────────────────── */
+.gfgs-empty {
+    text-align: center;
+    padding: 48px 20px;
+    color: #888;
+}
+
+.gfgs-empty svg {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 16px;
+    opacity: .35;
+}
+
+.gfgs-empty p {
+    font-size: 1rem;
+    margin: 0 0 16px;
+}
+
+/* ── Notices ────────────────────────────────────────────────────── */
+.gfgs-notice {
+    padding: 10px 16px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    font-size: .9rem;
+}
+
+.gfgs-notice.success {
+    background: #d1fadf;
+    color: #166534;
+    border: 1px solid #a7f3c5;
+}
+
+.gfgs-notice.error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+}
+
+/* ── Accounts table ─────────────────────────────────────────────── */
+.gfgs-accounts-table {
+    margin-top: 10px;
+}
+
+.gfgs-accounts-table td {
+    vertical-align: middle;
+}
+
+/* ── Entry meta box ─────────────────────────────────────────────── */
+.gfgs-entry-box {
+    padding: 4px 0;
+}
+
+.gfgs-entry-box p {
+    margin-top: 0;
+    font-size: .85rem;
+    color: #555;
+}
+
+.gfgs-send-status {
+    font-size: .85rem;
+}
+
+.gfgs-send-status.success {
+    color: var(--gfgs-green);
+}
+
+.gfgs-send-status.error {
+    color: var(--gfgs-red);
+}

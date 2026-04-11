@@ -1,0 +1,552 @@
+/* ══════════════════════════════════════════════════════════
+   SETTINGS PAGE STYLES
+   ══════════════════════════════════════════════════════════ */
+
+.gfgs-settings-wrap {
+    max-width: 1100px;
+}
+
+/* ── Header bar ──────────────────────────────────────────── */
+.gfgs-settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 0 18px;
+    border-bottom: 2px solid var(--gfgs-border);
+    margin-bottom: 24px;
+}
+
+.gfgs-settings-header-inner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.gfgs-settings-header-inner h1 {
+    margin: 0;
+    font-size: 1.4rem;
+    color: #1a1a1a;
+}
+
+.gfgs-settings-header-inner p {
+    margin: 2px 0 0;
+    font-size: .88rem;
+    color: #777;
+}
+
+.gfgs-logo {
+    flex-shrink: 0;
+}
+
+/* ── Layout ──────────────────────────────────────────────── */
+.gfgs-settings-body {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    flex-direction: row;
+}
+
+.gfgs-setup-guide {
+    flex: 1;
+    min-width: 0;
+}
+
+.gfgs-accounts-panel {
+    width: 360px;
+    flex-shrink: 0;
+}
+
+/* ── Setup guide ─────────────────────────────────────────── */
+.gfgs-setup-guide {
+    background: #fff;
+    border: 1px solid var(--gfgs-border);
+    border-radius: var(--gfgs-radius);
+    box-shadow: var(--gfgs-shadow);
+    padding: 20px 24px;
+}
+
+.gfgs-guide-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .95rem;
+    margin-bottom: 18px;
+    color: #333;
+}
+
+.gfgs-guide-steps {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.gfgs-guide-steps li {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+}
+
+.gfgs-step-num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    background: #1558a0;
+    color: #fff;
+    border-radius: 50%;
+    font-size: .78rem;
+    font-weight: 700;
+    margin-top: 1px;
+}
+
+.gfgs-guide-steps strong {
+    display: block;
+    font-size: .9rem;
+    color: #222;
+    margin-bottom: 3px;
+}
+
+.gfgs-guide-steps p {
+    margin: 0 0 5px;
+    font-size: .83rem;
+    color: #666;
+    line-height: 1.5;
+}
+
+.gfgs-guide-link {
+    display: inline-block;
+    font-size: .8rem;
+    color: #1558a0;
+    text-decoration: none;
+    margin-right: 10px;
+    border-bottom: 1px dotted #1558a0;
+}
+
+.gfgs-guide-link:hover {
+    color: #0f4880;
+}
+
+/* ── Copy box ────────────────────────────────────────────── */
+.gfgs-copy-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f7f7f7;
+    border: 1px solid var(--gfgs-border);
+    border-radius: 4px;
+    padding: 6px 10px;
+    margin: 6px 0;
+}
+
+.gfgs-copy-box code {
+    flex: 1;
+    font-size: .78rem;
+    color: #c0392b;
+    word-break: break-all;
+    background: none;
+}
+
+.gfgs-copy-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #fff;
+    border: 1px solid var(--gfgs-border);
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: .78rem;
+    cursor: pointer;
+    color: #555;
+    transition: all .2s;
+}
+
+.gfgs-copy-btn:hover {
+    background: var(--gfgs-gray);
+}
+
+/* ── Accounts panel ──────────────────────────────────────── */
+.gfgs-accounts-panel {
+    background: #fff;
+    border: 1px solid var(--gfgs-border);
+    border-radius: var(--gfgs-radius);
+    box-shadow: var(--gfgs-shadow);
+    overflow: hidden;
+}
+
+.gfgs-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--gfgs-border);
+    background: var(--gfgs-gray);
+}
+
+.gfgs-panel-header h3 {
+    margin: 0;
+    font-size: .95rem;
+    color: #333;
+}
+
+.gfgs-empty-accounts {
+    text-align: center;
+    padding: 32px 20px;
+    color: #888;
+}
+
+.gfgs-empty-accounts svg {
+    opacity: .3;
+    margin-bottom: 12px;
+    display: block;
+    margin-inline: auto;
+}
+
+.gfgs-empty-accounts p {
+    margin: 0 0 14px;
+}
+
+.gfgs-account-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background .15s;
+}
+
+.gfgs-account-card:last-child {
+    border-bottom: 0;
+}
+
+.gfgs-account-card:hover {
+    background: #fafafa;
+}
+
+.gfgs-account-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.gfgs-account-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.gfgs-account-info strong {
+    display: block;
+    font-size: .88rem;
+    color: #222;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gfgs-account-info span {
+    font-size: .78rem;
+    color: #888;
+}
+
+.gfgs-account-status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+.gfgs-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.gfgs-status-dot.connected {
+    background: var(--gfgs-green);
+}
+
+.gfgs-status-dot.pending {
+    background: #f59e0b;
+}
+
+.gfgs-status-label {
+    font-size: .75rem;
+    color: #666;
+}
+
+.gfgs-account-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+/* ── Add Account page layout ─────────────────────────────── */
+.gfgs-add-account-layout {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+}
+
+.gfgs-add-account-form {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.gfgs-add-account-guide {
+    width: 280px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 32px;
+}
+
+/* ── Cards ───────────────────────────────────────────────── */
+.gfgs-card {
+    background: #fff;
+    border: 1px solid var(--gfgs-border);
+    border-radius: var(--gfgs-radius);
+    box-shadow: var(--gfgs-shadow);
+    overflow: hidden;
+}
+
+.gfgs-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
+    background: var(--gfgs-gray);
+    border-bottom: 1px solid var(--gfgs-border);
+}
+
+.gfgs-card-header h3 {
+    margin: 0;
+    font-size: .95rem;
+    color: #222;
+    flex: 1;
+}
+
+.gfgs-card-step {
+    background: #1558a0;
+    color: #fff;
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: .75rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.gfgs-card-header-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: .8rem;
+    color: #1558a0;
+    text-decoration: none;
+    flex-shrink: 0;
+}
+
+.gfgs-card-header-link:hover {
+    color: #0f4880;
+}
+
+.gfgs-card-body {
+    padding: 20px;
+}
+
+/* ── Auth status ─────────────────────────────────────────── */
+.gfgs-auth-status {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: var(--gfgs-radius);
+    margin-bottom: 18px;
+}
+
+.gfgs-auth-status div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.gfgs-auth-status strong {
+    font-size: .88rem;
+}
+
+.gfgs-auth-status span {
+    font-size: .8rem;
+    color: #666;
+}
+
+.gfgs-auth-status--success {
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    color: #166534;
+}
+
+.gfgs-auth-status--success svg {
+    color: #16a34a;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.gfgs-auth-status--pending {
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    color: #92400e;
+}
+
+.gfgs-auth-status--pending svg {
+    color: #d97706;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+/* ── Action bar ──────────────────────────────────────────── */
+.gfgs-action-bar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+/* ── Connection result ───────────────────────────────────── */
+.gfgs-connection-result {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 5px;
+    font-size: .87rem;
+}
+
+.gfgs-result-success {
+    background: #f0fdf4;
+    color: #14532d;
+    border: 1px solid #86efac;
+}
+
+.gfgs-result-error {
+    background: #fff5f5;
+    color: #7f1d1d;
+    border: 1px solid #fca5a5;
+}
+
+.gfgs-result-info {
+    background: #eff6ff;
+    color: #1e3a8a;
+    border: 1px solid #93c5fd;
+}
+
+/* ── Mini guide sidebar ──────────────────────────────────── */
+.gfgs-mini-guide {
+    background: #fff;
+    border: 1px solid var(--gfgs-border);
+    border-radius: var(--gfgs-radius);
+    padding: 16px 18px;
+    box-shadow: var(--gfgs-shadow);
+}
+
+.gfgs-mini-guide h4 {
+    margin: 0 0 14px;
+    font-size: .88rem;
+    color: #333;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+.gfgs-mini-step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f5f5f5;
+    font-size: .82rem;
+    color: #555;
+}
+
+.gfgs-mini-step:last-child {
+    border-bottom: 0;
+}
+
+.gfgs-mini-step.active {
+    color: #1558a0;
+    font-weight: 600;
+}
+
+.gfgs-mini-num {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    border-radius: 50%;
+    background: #e0e7ff;
+    color: #3730a3;
+    font-size: .7rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gfgs-mini-step.active .gfgs-mini-num {
+    background: #1558a0;
+    color: #fff;
+}
+
+.gfgs-mini-step-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: inherit;
+    text-decoration: none;
+    flex: 1;
+}
+
+.gfgs-mini-step-link:hover {
+    color: #1558a0;
+}
+
+.gfgs-mini-step-link svg {
+    margin-left: auto;
+    opacity: .5;
+}
+
+.gfgs-mini-guide-tip ul {
+    margin: 0;
+    padding-left: 16px;
+}
+
+.gfgs-mini-guide-tip li {
+    font-size: .81rem;
+    color: #555;
+    margin-bottom: 7px;
+    line-height: 1.45;
+}
+
+/* ── Add account link in feed editor ────────────────────── */
+.gfgs-add-acct-link {
+    font-size: .78rem;
+    font-weight: 400;
+    color: #1558a0;
+    text-decoration: none;
+    margin-left: 8px;
+}
+
+.gfgs-add-acct-link:hover {
+    text-decoration: underline;
+}
