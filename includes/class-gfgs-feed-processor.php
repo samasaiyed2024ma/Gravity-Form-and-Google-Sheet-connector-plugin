@@ -66,7 +66,6 @@ class GFGS_Feed_Processor{
             if(!$feed->is_active) continue;
 
             if($feed->send_event !== $event) continue;
-
             $this->process_single_feed($feed, $entry, $form);
         }
     }
@@ -92,6 +91,7 @@ class GFGS_Feed_Processor{
 
         // Send to Google Sheets
         $api = new GFGS_Google_API();
+
         $result = $api->append_row(
             $feed->account_id,
             $feed->spreadsheet_id,

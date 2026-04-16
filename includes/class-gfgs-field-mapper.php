@@ -8,15 +8,14 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 class GFGS_Field_Mapper {
     public static function build_row( array $field_map, array $entry, array $form ) : array {
         $row = [];
+        foreach ( $field_map as $mapping ) {			
+            $column   = sanitize_text_field( $mapping['column'] ?? '' );
+            $gf_field = $mapping['field_id'] ?? '';
 
-        foreach ( $field_map as $mapping ) {
-            $column   = sanitize_text_field( $mapping['sheet_column'] ?? '' );
-            $gf_field = $mapping['gf_field'] ?? '';
             if ( '' === $column || '' === $gf_field ) continue;
 
             $row[ $column ] = self::resolve_value( $gf_field, $entry, $form );
         }
-
         return $row;
     }
 
@@ -178,7 +177,7 @@ class GFGS_Field_Mapper {
         if ( empty( $conditions['rules'] ) )   return true;
 
         return GFCommon::evaluate_conditional_logic(
-            (object) $conditions,
+            (array) $conditions,
             $form,
             $entry
         );
