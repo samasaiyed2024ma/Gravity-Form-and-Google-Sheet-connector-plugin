@@ -27,7 +27,7 @@ class GFGS_Google_API{
     public function get_auth_url($state = ''){
         $params = [
             'client_id' => $this->client_id,
-            'client_secret' => $this->client_secret,
+            // 'client_secret' => $this->client_secret,
             'response_type' => 'code',
             'scope' => 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.email',
             'access_type' => 'offline',
@@ -87,11 +87,11 @@ class GFGS_Google_API{
     // ── Token Management ────────────────────────────────────────────────────────────────
     public function get_valid_token( $account_id ) {
         $account = GFGS_Database::get_account( $account_id );
-        if ( ! $account ) return new WP_Error( 'no_account', __( 'Account not found.', 'gf-google-sheets' ) );
+        if ( ! $account ) return new WP_Error( 'no_account', __( 'Account not found.', 'GFGS' ) );
 
         $tokens = json_decode( $account->access_token, true );
         if ( empty( $tokens['access_token'] ) ) {
-            return new WP_Error( 'no_token', __( 'No access token stored. Please re-authorize this account.', 'gf-google-sheets' ) );
+            return new WP_Error( 'no_token', __( 'No access token stored. Please re-authorize this account.', 'GFGS' ) );
         }
 
         // Refresh if expires in < 60 seconds

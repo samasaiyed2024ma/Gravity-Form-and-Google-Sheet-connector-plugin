@@ -213,8 +213,8 @@
 
 .gfgs-account-card {
     display: flex;
-    align-items: center;
-    gap: 12px;
+    flex-direction: column;
+    gap: 20px;
     padding: 14px 18px;
     border-bottom: 1px solid #f0f0f0;
     transition: background .15s;
@@ -226,6 +226,13 @@
 
 .gfgs-account-card:hover {
     background: #fafafa;
+}
+
+.gfgs-google-account {
+    display: flex !important;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
 }
 
 .gfgs-account-avatar {
@@ -240,6 +247,11 @@
     font-size: .8rem;
     font-weight: 700;
     flex-shrink: 0;
+}
+
+.gfgs-account-name {
+    display: flex !important;
+    gap: 15px;
 }
 
 .gfgs-account-info {
@@ -292,6 +304,7 @@
     display: flex;
     gap: 6px;
     flex-shrink: 0;
+    justify-content: end !important;
 }
 
 /* ── Add Account page layout ─────────────────────────────── */

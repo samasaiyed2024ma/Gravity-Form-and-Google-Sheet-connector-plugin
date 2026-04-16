@@ -64,7 +64,7 @@ class GFGS_Database {
 
     public static function get_accounts() {
         global $wpdb;
-        return $wpdb->get_results( "SELECT id, account_name, email, token_expires FROM {$wpdb->prefix}" . self::ACCOUNTS_TABLE . " ORDER BY account_name ASC" );
+        return $wpdb->get_results( "SELECT id, account_name, email, token_expires, refresh_token FROM {$wpdb->prefix}" . self::ACCOUNTS_TABLE . " ORDER BY account_name ASC" );
     }
 
     public static function get_account( $id ) {

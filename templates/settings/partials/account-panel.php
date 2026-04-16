@@ -24,38 +24,43 @@
         <div class="gfgs-account-list">
             <?php foreach ( $accounts as $account ) : ?>
                 <div class="gfgs-account-card" data-id="<?php echo (int) $account->id; ?>">
+                    <div class="gfgs-google-account">
+                        <div class="gfgs-account-name">
+                            <div class="gfgs-account-avatar">
+                                <?php echo esc_html( strtoupper( substr( $account->email ?: $account->account_name, 0, 2 ) ) ); ?>
+                            </div>
 
-                    <div class="gfgs-account-avatar">
-                        <?php echo esc_html( strtoupper( substr( $account->email ?: $account->account_name, 0, 2 ) ) ); ?>
+                            <div class="gfgs-account-info">
+                                <strong><?php echo esc_html( $account->account_name ); ?></strong>
+                                <span><?php echo esc_html( $account->email ?: __( 'Not yet authorized', 'GFGS' ) ); ?></span>
+                            </div>
+                        </div>
+                        <div class="gfgs-account-status">
+                            <?php if ( $account->refresh_token ) : ?>
+                                <span class="gfgs-status-dot connected"></span>
+                                <span class="gfgs-status-label"><?php esc_html_e( 'Connected', 'GFGS' ); ?></span>
+                            <?php else : ?>
+                                <span class="gfgs-status-dot pending"></span>
+                                <span class="gfgs-status-label"><?php esc_html_e( 'Pending Auth', 'GFGS' ); ?></span>
+                            <?php endif; ?>
+                        </div>
                     </div>
 
-                    <div class="gfgs-account-info">
-                        <strong><?php echo esc_html( $account->account_name ); ?></strong>
-                        <span><?php echo esc_html( $account->email ?: __( 'Not yet authorized', 'GFGS' ) ); ?></span>
-                    </div>
 
-                    <div class="gfgs-account-status">
-                        <?php if ( $account->refresh_token ) : ?>
-                            <span class="gfgs-status-dot connected"></span>
-                            <span class="gfgs-status-label"><?php esc_html_e( 'Connected', 'GFGS' ); ?></span>
-                        <?php else : ?>
-                            <span class="gfgs-status-dot pending"></span>
-                            <span class="gfgs-status-label"><?php esc_html_e( 'Pending Auth', 'GFGS' ); ?></span>
-                        <?php endif; ?>
-                    </div>
 
                     <div class="gfgs-account-actions">
-                        <a href="<?php echo esc_url( $add_account_url . '&gfgs_pending=' . $account->id ); ?>" 
-                           class="gfgs-btn gfgs-btn-sm">
-                            <?php esc_html_e( 'Edit', 'GFGS' ); ?>
-                        </a>
-                        <button type="button" 
-                                class="gfgs-btn gfgs-btn-sm gfgs-btn-danger gfgs-disconnect-account" 
-                                data-id="<?php echo (int) $account->id; ?>">
-                            <?php esc_html_e( 'Disconnect', 'GFGS' ); ?>
-                        </button>
+                        <div class="gfgs-account-action-buttons">
+                            <a href="<?php echo esc_url( $add_account_url . '&gfgs_pending=' . $account->id ); ?>" 
+                            class="gfgs-btn gfgs-btn-sm">
+                                <?php esc_html_e( 'Edit', 'GFGS' ); ?>
+                            </a>
+                            <button type="button" 
+                                    class="gfgs-btn gfgs-btn-sm gfgs-btn-danger gfgs-disconnect-account" 
+                                    data-id="<?php echo (int) $account->id; ?>">
+                                <?php esc_html_e( 'Disconnect', 'GFGS' ); ?>
+                            </button>
+                        </div>
                     </div>
-
                 </div>
             <?php endforeach; ?>
         </div>

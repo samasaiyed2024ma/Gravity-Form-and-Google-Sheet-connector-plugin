@@ -5,7 +5,6 @@
  * Version: 1.0
  * Author: Mervan Agency
  * Author URI: mervanagency.io
- * License: GPL-2.0+
  * Text Domain: gf-google-sheets
  * Domain Path: /languages
  */
@@ -40,7 +39,7 @@ final class GF_Google_Sheets {
         if ( ! class_exists( 'GFForms' ) ) {
             add_action( 'admin_notices', function () {
                 echo '<div class="notice notice-error"><p>' .
-                     esc_html__( 'GF Google Sheets requires Gravity Forms to be installed and active.', 'gf-google-sheets' ) .
+                     esc_html__( 'GF Google Sheets requires Gravity Forms to be installed and active.', 'GFGS' ) .
                      '</p></div>';
             } );
             return;
@@ -55,9 +54,11 @@ final class GF_Google_Sheets {
         require_once GFGS_PLUGIN_DIR . 'includes/class-gfgs-feed-processor.php';
         require_once GFGS_PLUGIN_DIR . 'includes/class-gfgs-field-mapper.php';
         require_once GFGS_PLUGIN_DIR . 'includes/class-gfgs-addon.php';
+        require_once GFGS_PLUGIN_DIR . 'includes/class-gfgs-plugin-details.php';
 
         // 3. Register the addon
         GFAddOn::register( 'GFGS_Addon' );
+        new GFGS_Plugin_Details();
     }
 
     public function activate() {
