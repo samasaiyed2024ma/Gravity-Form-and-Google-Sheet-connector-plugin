@@ -46,7 +46,6 @@ class GFGS_Addon extends GFFeedAddOn{
         add_action('wp_ajax_gfgs_test_connection', [$this, 'ajax_test_connection']);
         add_action('wp_ajax_gfgs_save_account_creds', [$this, 'ajax_save_account_creds']);
         add_action('wp_ajax_gfgs_connect_account', [$this, 'ajax_connect_account']);
-		add_action('wp_ajax_gfgs_connect_account', [$this, 'ajax_connect_account']);
         add_action('wp_ajax_gfgs_render_feed_editor', [$this, 'ajax_render_feed_editor']);
 
         // Oauth callback
@@ -259,36 +258,22 @@ class GFGS_Addon extends GFFeedAddOn{
         $accounts = GFGS_Database::get_accounts();
 
         //Build fields list
-        $fields = [];
-        if ( ! empty( $form_data['fields'] ) ) {
-            foreach ( $form_data['fields'] as $field ) {
-                if ( is_object( $field ) && isset( $field->inputs ) && is_array( $field->inputs ) ) {
-                    foreach ( $field->inputs as $input ) {
-                        $fields[] = [
-                            'id'    => (string) $input['id'],
-                            'label' => strip_tags( $field->label . ' (' . $input['label'] . ')' ),
-                        ];
-                    }
-                } else {
-                    $fields[] = [
-                        'id'    => (string) $field->id,
-                        'label' => strip_tags( $field->label ?? 'Field ' . $field->id ),
-                    ];
-                }
-            }
-        }
+        $fields = $this->build_field_list($form_data);
 
         wp_localize_script( 'gfgs-feed', 'gfgsData', [
             'formId' => $form_id,
-            'feeds' => array_map( fn($f) => (array)$f, $feeds ),
+             'feeds'         => array_map( fn( $f ) => $this->prepare_feed_for_js( $f ), $feeds ),
             'accounts' => array_map( fn($a) => (array)$a, $accounts ),
+            'fields' => $fields,
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('gfgs_nonce'),
-            'fields' => $fields,
             'addAccountUrl' => admin_url('admin.php?page=gf_settings&subview=gf-google-sheets&gfgs_view=add_account'),
             'feedEvents' => [
-                'form_submit' => __('Form Submit', 'GFGS'),
-                'payment' => __('Payment', 'GFGS'),
+                'form_submit'          => __( 'Form Submission', 'GFGS' ),
+                'payment_completed'    => __( 'Payment Completed', 'GFGS' ),
+                'payment_refunded'     => __( 'Payment Refunded', 'GFGS' ),
+                'submission_completed' => __( 'After All Notifications Sent', 'GFGS' ),
+                'entry_updated'        => __( 'Entry Updated', 'GFGS' ),
             ],
             'i18n' => [
                 'feedList' => __('Google Sheets Feeds', 'GFGS'),
@@ -297,8 +282,6 @@ class GFGS_Addon extends GFFeedAddOn{
                 'confirmDel' => __('Delete this feed?', 'GFGS'),
             ],
         ]);
-
-        error_log('GFGS feed_list_page form_id: ' . $form_id);
 
         $this->render_template('feeds/feed-list', [
             'form_id' => $form_id,
@@ -309,6 +292,72 @@ class GFGS_Addon extends GFFeedAddOn{
 
     public function form_settings_page( $form_id = 0 ) {
         $this->feed_list_page( $form_id );
+    }
+
+    // ── Helper: build fields list with type info ───────────────────────────────
+    public function build_field_list($form_data){
+        $fields = [];
+        if ( empty( $form_data['fields'] ) ) return $fields;
+ 
+        foreach ( $form_data['fields'] as $field ) {
+            if ( ! is_object( $field ) ) continue;
+ 
+            if ( isset( $field->inputs ) && is_array( $field->inputs ) ) {
+                foreach ( $field->inputs as $input ) {
+                    $fields[] = [
+                        'id'      => (string) $input['id'],
+                        'label'   => strip_tags( $field->label . ' (' . $input['label'] . ')' ),
+                        'type'    => $field->type,
+                        'choices' => [],
+                    ];
+                }
+            } else {
+                $choices = [];
+                if ( ! empty( $field->choices ) && is_array( $field->choices ) ) {
+                    foreach ( $field->choices as $choice ) {
+                        $choices[] = [
+                            'value' => $choice['value'] ?? '',
+                            'text'  => $choice['text']  ?? $choice['value'] ?? '',
+                        ];
+                    }
+                }
+                $fields[] = [
+                    'id'      => (string) $field->id,
+                    'label'   => strip_tags( $field->label ?? 'Field ' . $field->id ),
+                    'type'    => $field->type,
+                    'choices' => $choices,
+                ];
+            }
+        }
+        return $fields;
+    }
+
+    /**
+     * Decode a feed object and ensure date_formats is available for JS.
+     */
+    private function prepare_feed_for_js( $feed ) {
+        $arr = (array) $feed;
+ 
+        // Decode JSON fields
+        foreach ( [ 'field_map', 'conditions', 'date_formats' ] as $key ) {
+            if ( isset( $arr[ $key ] ) && is_string( $arr[ $key ] ) ) {
+                $arr[ $key ] = json_decode( $arr[ $key ], true ) ?: [];
+            }
+            if ( ! isset( $arr[ $key ] ) ) {
+                $arr[ $key ] = [];
+            }
+        }
+ 
+        // Normalise field_map: support both old 'column'/'field_id' and new 'sheet_column'/'field_id'
+        $arr['field_map'] = array_map( function ( $m ) {
+            return [
+                'sheet_column' => $m['sheet_column'] ?? $m['column'] ?? '',
+                'field_id'     => $m['field_id'] ?? $m['gf_field'] ?? '',
+                'field_type'   => $m['field_type'] ?? 'standard',
+            ];
+        }, (array) $arr['field_map'] );
+ 
+        return $arr;
     }
 
     // ── Entry meta box ─────────────────────────────────────────────────────────
@@ -326,17 +375,66 @@ class GFGS_Addon extends GFFeedAddOn{
 
     public function render_entry_meta_box( $args ) {
         $entry = $args['entry'];
+        $feeds = GFGS_Database::get_feeds_by_form( $entry['form_id'] );
         ?>
         <div class="gfgs-entry-box">
-            <p><?php esc_html_e( 'Manually send this entry to all active Google Sheets feeds.', 'GFGS' ); ?></p>
+            <p><?php esc_html_e( 'Manually send this entry to Google Sheets feeds.', 'GFGS' ); ?></p>
+ 
+            <?php if ( ! empty( $feeds ) ) : ?>
+                <select id="gfgs-feed-select" style="width:100%;margin-bottom:8px;">
+                    <option value="all"><?php esc_html_e( 'All Active Feeds', 'GFGS' ); ?></option>
+                    <?php foreach ( $feeds as $feed ) : ?>
+                        <?php if ( $feed->is_active ) : ?>
+                            <option value="<?php echo (int) $feed->id; ?>">
+                                <?php echo esc_html( $feed->feed_name ); ?>
+                            </option>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                </select>
+            <?php endif; ?>
+ 
             <button type="button"
                     class="button button-primary gfgs-manual-send-btn"
                     data-entry-id="<?php echo (int) $entry['id']; ?>"
-                    data-nonce="<?php echo esc_attr( wp_create_nonce( 'gfgs_manual_send_' . $entry['id'] ) ); ?>">
+                    data-nonce="<?php echo esc_attr( wp_create_nonce( 'gfgs_manual_send_' . $entry['id'] ) ); ?>"
+                    style="width:100%">
                 <?php esc_html_e( 'Send to Google Sheets', 'GFGS' ); ?>
             </button>
-            <span class="gfgs-send-status" style="display:none;margin-left:8px;"></span>
+            <span class="gfgs-send-status" style="display:none;margin-top:8px;display:block;"></span>
         </div>
+ 
+        <script>
+        (function($){
+            $(document).on('click', '.gfgs-manual-send-btn', function(){
+                var $btn    = $(this);
+                var $status = $btn.siblings('.gfgs-send-status');
+                var entryId = $btn.data('entry-id');
+                var nonce   = $btn.data('nonce');
+                var feedId  = $('#gfgs-feed-select').val() || 'all';
+ 
+                $btn.prop('disabled', true).text('Sending…');
+                $status.hide().text('');
+ 
+                $.post(ajaxurl, {
+                    action:   'gfgs_manual_send',
+                    nonce:    nonce,
+                    entry_id: entryId,
+                    feed_id:  feedId,
+                }, function(res){
+                    $btn.prop('disabled', false).text('Send to Google Sheets');
+                    if(res.success){
+                        $status.show().css('color','green').text('✓ Sent ' + res.data.sent + ' feed(s) successfully.');
+                    } else {
+                        var msg = (res.data && res.data.message) ? res.data.message : 'Send failed.';
+                        $status.show().css('color','red').text('✗ ' + msg);
+                    }
+                }).fail(function(){
+                    $btn.prop('disabled', false).text('Send to Google Sheets');
+                    $status.show().css('color','red').text('✗ Network error. Please try again.');
+                });
+            });
+        })(jQuery);
+        </script>
         <?php
     }
 
@@ -539,6 +637,7 @@ class GFGS_Addon extends GFFeedAddOn{
             'sheet_id'       => sanitize_text_field( $_POST['sheet_id']       ?? '' ),
             'sheet_name'     => sanitize_text_field( $_POST['sheet_name']     ?? '' ),
             'field_map'      => json_decode( wp_unslash( $_POST['field_map'] ?? '[]' ), true ) ?: [],
+            'date_formats'   => json_decode( wp_unslash( $_POST['date_formats'] ?? '{}' ), true ) ?: [],
             'conditions'     => json_decode( wp_unslash( $_POST['conditions'] ?? '{}' ), true ) ?: [],
             'send_event'     => sanitize_text_field( $_POST['send_event']     ?? 'form_submit' ),
             'is_active'      => (int)   ( $_POST['is_active']      ?? 1 ),
@@ -548,7 +647,14 @@ class GFGS_Addon extends GFFeedAddOn{
             wp_send_json_error( [ 'message' => __( 'Invalid form ID.', 'GFGS' ) ] );
         }
 
-        $feed_id = GFGS_Database::save_feed( $data );
+        // Re-encode date_formats alongside field_map for storage
+        foreach ( [ 'field_map', 'date_formats', 'conditions' ] as $key ) {
+            if ( is_array( $data[ $key ] ) ) {
+                $data[ $key ] = wp_json_encode( $data[ $key ] );
+            }
+        }
+
+        $feed_id = GFGS_Database::save_feed_raw( $data );
         wp_send_json_success( [ 'feed_id' => $feed_id ] );
     }
 
@@ -575,10 +681,20 @@ class GFGS_Addon extends GFFeedAddOn{
     }
 
     public function ajax_manual_send() {
-        $entry_id = (int) ( $_POST['entry_id'] ?? 0 );
-        check_ajax_referer( 'gfgs_manual_send_' . $entry_id, 'nonce' );
-        if ( ! current_user_can( 'gravityforms_view_entries' ) ) wp_send_json_error();
-        $result = GFGS_Feed_Processor::manual_send( $entry_id );
+      $entry_id = (int) ( $_POST['entry_id'] ?? 0 );
+ 
+        // Verify nonce properly
+        if ( ! check_ajax_referer( 'gfgs_manual_send_' . $entry_id, 'nonce', false ) ) {
+            wp_send_json_error( [ 'message' => 'Security check failed.' ] );
+        }
+ 
+        if ( ! current_user_can( 'gravityforms_view_entries' ) && ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => 'Insufficient permissions.' ] );
+        }
+ 
+        $feed_id = sanitize_text_field( $_POST['feed_id'] ?? 'all' );
+        $result  = GFGS_Feed_Processor::manual_send( $entry_id, $feed_id === 'all' ? null : (int) $feed_id );
+ 
         is_wp_error( $result )
             ? wp_send_json_error( [ 'message' => $result->get_error_message() ] )
             : wp_send_json_success( $result );
@@ -589,207 +705,17 @@ class GFGS_Addon extends GFFeedAddOn{
      * Called by feed-list.js startEditing() when user clicks Add New or Edit.
      */
     public function ajax_render_feed_editor() {
+        // Editor is now fully JS-rendered
+        // But we keep it to avoid 404s from any cached JS
         $this->verify_ajax();
- 
-        $form_id = (int) ( $_POST['form_id'] ?? 0 );
-        $feed_id = (int) ( $_POST['feed_id'] ?? 0 );
- 
-        if ( ! $form_id ) {
-            wp_send_json_error( [ 'message' => __( 'Invalid form ID.', 'GFGS' ) ] );
-        }
- 
-        $form     = GFAPI::get_form( $form_id );
-        $accounts = GFGS_Database::get_accounts();
-        $feed     = $feed_id ? GFGS_Database::get_feed( $feed_id ) : null;
- 
-        // Build form fields list
-        $fields = [];
-        if ( ! empty( $form['fields'] ) ) {
-            foreach ( $form['fields'] as $field ) {
-                if ( is_object( $field ) && isset( $field->inputs ) && is_array( $field->inputs ) ) {
-                    foreach ( $field->inputs as $input ) {
-                        $fields[] = [
-                            'id'    => (string) $input['id'],
-                            'label' => strip_tags( $field->label . ' (' . $input['label'] . ')' ),
-                        ];
-                    }
-                } else {
-                    $fields[] = [
-                        'id'    => (string) $field->id,
-                        'label' => strip_tags( $field->label ?? 'Field ' . $field->id ),
-                    ];
-                }
-            }
-        }
- 
-        $feed_data = $feed ? (array) $feed : [
-            'id'             => 0,
-            'form_id'        => $form_id,
-            'feed_name'      => '',
-            'account_id'     => $accounts ? $accounts[0]->id : '',
-            'spreadsheet_id' => '',
-            'sheet_id'       => '',
-            'sheet_name'     => '',
-            'field_map'      => [],
-            'conditions'     => [ 'enabled' => false, 'action' => 'send', 'logic' => 'all', 'rules' => [] ],
-            'send_event'     => 'form_submit',
-            'is_active'      => 1,
-        ];
- 
-        // Decode JSON fields if stored as strings
-        foreach ( [ 'field_map', 'conditions' ] as $key ) {
-            if ( isset( $feed_data[ $key ] ) && is_string( $feed_data[ $key ] ) ) {
-                $feed_data[ $key ] = json_decode( $feed_data[ $key ], true ) ?: ( $key === 'field_map' ? [] : [] );
-            }
-        }
- 
-        ob_start();
-        $this->render_feed_editor_html( $feed_data, $accounts, $fields, $form_id );
-        $html = ob_get_clean();
- 
-        wp_send_json_success( [ 'html' => $html ] );
+        wp_send_json_error( [ 'message' => 'This endpoint is no longer used.' ] );
     }
- 
-    /**
-     * Render the feed editor form HTML.
-     */
-    private function render_feed_editor_html( $feed, $accounts, $fields, $form_id ) {
-        $feed_id        = (int) ( $feed['id'] ?? 0 );
-        $feed_name      = esc_attr( $feed['feed_name'] ?? '' );
-        $account_id     = (int) ( $feed['account_id'] ?? 0 );
-        $spreadsheet_id = esc_attr( $feed['spreadsheet_id'] ?? '' );
-        $sheet_name     = esc_attr( $feed['sheet_name'] ?? '' );
-        $send_event     = esc_attr( $feed['send_event'] ?? 'form_submit' );
-        $is_active      = (int) ( $feed['is_active'] ?? 1 );
-        $field_map      = $feed['field_map'] ?? [];
-        ?>
-        <div class="gfgs-editor-wrap" data-feed-id="<?php echo $feed_id; ?>" data-form-id="<?php echo (int) $form_id; ?>">
- 
-            <div class="gfgs-header">
-                <h2><?php echo $feed_id ? esc_html__( 'Edit Feed', 'GFGS' ) : esc_html__( 'Add New Feed', 'GFGS' ); ?></h2>
-                <button class="button" id="gfgs-back-to-list">&larr; <?php esc_html_e( 'Back to Feeds', 'GFGS' ); ?></button>
-            </div>
- 
-            <div class="gfgs-editor-body">
- 
-                <!-- Feed Name -->
-                <div class="gfgs-field-row">
-                    <label><?php esc_html_e( 'Feed Name', 'GFGS' ); ?></label>
-                    <input type="text" id="gfgs-feed-name" value="<?php echo $feed_name; ?>" placeholder="<?php esc_attr_e( 'My Google Sheets Feed', 'GFGS' ); ?>">
-                </div>
- 
-                <!-- Account -->
-                <div class="gfgs-field-row">
-                    <label><?php esc_html_e( 'Google Account', 'GFGS' ); ?></label>
-                    <select id="gfgs-account-select">
-                        <option value=""><?php esc_html_e( '— Select Account —', 'GFGS' ); ?></option>
-                        <?php foreach ( $accounts as $acct ) : ?>
-                            <option value="<?php echo (int) $acct->id; ?>" <?php selected( $account_id, $acct->id ); ?>>
-                                <?php echo esc_html( $acct->account_name ?: $acct->email ); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <?php if ( empty( $accounts ) ) : ?>
-                        <p class="gfgs-hint">
-                            <a href="<?php echo esc_url( admin_url( 'admin.php?page=gf_settings&subview=gf-google-sheets&gfgs_view=add_account' ) ); ?>">
-                                <?php esc_html_e( 'Connect a Google Account first', 'GFGS' ); ?>
-                            </a>
-                        </p>
-                    <?php endif; ?>
-                </div>
- 
-                <!-- Spreadsheet -->
-                <div class="gfgs-field-row">
-                    <label><?php esc_html_e( 'Spreadsheet', 'GFGS' ); ?></label>
-                    <select id="gfgs-spreadsheet-select" data-current="<?php echo esc_attr( $spreadsheet_id ); ?>">
-                        <option value=""><?php esc_html_e( '— Select Spreadsheet —', 'GFGS' ); ?></option>
-                    </select>
-                    <span class="gfgs-spinner gfgs-spinner-ss" style="display:none;"></span>
-                </div>
- 
-                <!-- Sheet Tab -->
-                <div class="gfgs-field-row">
-                    <label><?php esc_html_e( 'Sheet (Tab)', 'GFGS' ); ?></label>
-                    <select id="gfgs-sheet-select" data-current="<?php echo $sheet_name; ?>">
-                        <option value=""><?php esc_html_e( '— Select Sheet —', 'GFGS' ); ?></option>
-                    </select>
-                    <span class="gfgs-spinner gfgs-spinner-sh" style="display:none;"></span>
-                </div>
- 
-                <!-- Send Event -->
-                <div class="gfgs-field-row">
-                    <label><?php esc_html_e( 'Send On', 'GFGS' ); ?></label>
-                    <select id="gfgs-send-event">
-                        <option value="form_submit" <?php selected( $send_event, 'form_submit' ); ?>><?php esc_html_e( 'Form Submit', 'GFGS' ); ?></option>
-                        <option value="payment" <?php selected( $send_event, 'payment' ); ?>><?php esc_html_e( 'Payment', 'GFGS' ); ?></option>
-                    </select>
-                </div>
- 
-                <!-- Active Toggle -->
-                <div class="gfgs-field-row">
-                    <label><?php esc_html_e( 'Active', 'GFGS' ); ?></label>
-                    <label class="gfgs-toggle">
-                        <input type="checkbox" id="gfgs-is-active" <?php checked( $is_active, 1 ); ?>>
-                        <span class="gfgs-slider"></span>
-                    </label>
-                </div>
- 
-                <!-- Field Mapper -->
-                <div class="gfgs-field-row gfgs-field-mapper-section">
-                    <label><?php esc_html_e( 'Field Mapping', 'GFGS' ); ?></label>
-                    <div id="gfgs-field-mapper">
-                        <?php if ( empty( $field_map ) ) : ?>
-                            <p class="gfgs-hint"><?php esc_html_e( 'Select a sheet to load columns and map form fields.', 'GFGS' ); ?></p>
-                        <?php else : ?>
-                            <?php foreach ( $field_map as $mapping ) : ?>
-                                <div class="gfgs-mapper-row">
-                                    <input type="text" class="gfgs-col-header" value="<?php echo esc_attr( $mapping['column'] ?? '' ); ?>" placeholder="Sheet Column" readonly>
-                                    <select class="gfgs-field-select">
-                                        <option value=""><?php esc_html_e( '— Form Field —', 'GFGS' ); ?></option>
-                                        <?php foreach ( $fields as $f ) : ?>
-                                            <option value="<?php echo esc_attr( $f['id'] ); ?>" <?php selected( $mapping['field_id'] ?? '', $f['id'] ); ?>>
-                                                <?php echo esc_html( $f['label'] ); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </div>
-                    <span class="gfgs-spinner gfgs-spinner-hd" style="display:none;"></span>
-                </div>
- 
-                <!-- Save Button -->
-                <div class="gfgs-editor-actions">
-                    <button class="button button-primary" id="gfgs-save-feed"><?php esc_html_e( 'Save Feed', 'GFGS' ); ?></button>
-                    <span class="gfgs-save-status" style="display:none;"></span>
-                </div>
- 
-            </div><!-- .gfgs-editor-body -->
- 
-            <!-- Pass existing field_map + fields JSON to JS -->
-            <script>
-                window.gfgsEditorData = {
-                    feedId:      <?php echo $feed_id; ?>,
-                    formId:      <?php echo (int) $form_id; ?>,
-                    accountId:   <?php echo $account_id; ?>,
-                    spreadsheetId: <?php echo wp_json_encode( $feed['spreadsheet_id'] ?? '' ); ?>,
-                    sheetName:   <?php echo wp_json_encode( $feed['sheet_name'] ?? '' ); ?>,
-                    fieldMap:    <?php echo wp_json_encode( $field_map ); ?>,
-                    formFields:  <?php echo wp_json_encode( $fields ); ?>,
-                    conditions:  <?php echo wp_json_encode( $feed['conditions'] ?? [] ); ?>,
-                };
-            </script>
-        </div>
-        <?php
-    }
- 
+
     /**
      * AJAX: Connect account (alias for save_account_creds flow).
      * Kept for back-compat with any JS calling gfgs_connect_account directly.
      */
     public function ajax_connect_account() {
         $this->ajax_save_account_creds();
-    }
-	
+    }	
 }

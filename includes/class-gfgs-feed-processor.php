@@ -73,51 +73,46 @@ class GFGS_Feed_Processor{
     /**
      * Process a single feed: check conditions, build row, send to Sheets.
      */
-    public function process_single_feed($feed, $entry, $form){
+    public function process_single_feed( $feed, $entry, $form ) {
+        $conditions = is_array( $feed->conditions ) ? $feed->conditions : [];
+ 
         // Check conditional logic
-        if(!GFGS_Field_Mapper::check_conditions((array)$feed->conditions, $entry, $form)){
-            $this->log("Feed #{$feed->id} skipped (conditions not met) for entry #{$entry['id']}");
+        if ( ! GFGS_Field_Mapper::check_conditions( $conditions, $entry, $form ) ) {
+            $this->log( "Feed #{$feed->id} skipped (conditions not met) for entry #{$entry['id']}" );
             return;
         }
-
-        // Build the row
-        $field_map = is_array($feed->field_map) ? $feed->field_map : [];
-        $row = GFGS_Field_Mapper::build_row($field_map, $entry, $form);
-
-        if(empty($row)){
-            $this->log("Feed #{$feed->id} has no mapped fields, skipping entry #{$entry['id']}");
+ 
+        $field_map   = is_array( $feed->field_map )   ? $feed->field_map   : [];
+        $date_formats = is_array( $feed->date_formats ) ? $feed->date_formats : [];
+ 
+        // Build row using the new schema key names
+        $row = GFGS_Field_Mapper::build_row( $field_map, $entry, $form, $date_formats );
+ 
+        if ( empty( $row ) ) {
+            $this->log( "Feed #{$feed->id}: no mapped fields, skipping entry #{$entry['id']}" );
             return;
         }
-
-        // Send to Google Sheets
-        $api = new GFGS_Google_API();
-
+ 
+        $api    = new GFGS_Google_API();
         $result = $api->append_row(
             $feed->account_id,
             $feed->spreadsheet_id,
             $feed->sheet_name,
             $row
         );
-
-        if(is_wp_error($result)){
-            $this->log("Feed #{$feed->id} error:" . $result->get_error_message(), 'error');
-
-            // Store error in entry note
+ 
+        if ( is_wp_error( $result ) ) {
+            $this->log( "Feed #{$feed->id} error: " . $result->get_error_message(), 'error' );
             GFFormsModel::add_note(
-                $entry['id'],
-                0,
-                'GF Google Sheets',
-                sprintf(__('Error sending to Google Sheets (Feed: %s): %s', 'GFGS'), $feed->feed_name, $result->get_error_message()),
+                $entry['id'], 0, 'GF Google Sheets',
+                sprintf( __( 'Error sending to Google Sheets (Feed: %s): %s', 'GFGS' ), $feed->feed_name, $result->get_error_message() ),
                 'error'
             );
-        }
-        else{
-            $this->log("Feed #{$feed->id} sent row for entry #{$entry['id']}");
+        } else {
+            $this->log( "Feed #{$feed->id} sent row for entry #{$entry['id']}" );
             GFFormsModel::add_note(
-                $entry['id'],
-                0,
-                'GF Google Sheets',
-                sprintf(__('Entry sent to Google Sheets (Feed: %s)', 'GFGS'), $feed->feed_name),
+                $entry['id'], 0, 'GF Google Sheets',
+                sprintf( __( 'Entry sent to Google Sheets (Feed: %s)', 'GFGS' ), $feed->feed_name ),
                 'success'
             );
         }
@@ -125,29 +120,40 @@ class GFGS_Feed_Processor{
 
     // ── Manual send (triggered from entry detail) ─────────────────────────────
     /**
-     * Called via AJAX to manually send an entry to all feeds.
-     */   
-
-    public static function manual_send($entry_id){
-        $entry= GFAPI::get_entry($entry_id);
-
-        if(is_wp_error($entry)) return $entry;
-
-        $form = GFAPI::get_form($entry['form_id']);
-        $feeds = GFGS_Database::get_feeds_by_form($form['id']);
-
-        $sent = 0;
+     * Manually send an entry to all feeds, or a specific feed.
+     *
+     * @param int      $entry_id
+     * @param int|null $feed_id  null = all active feeds; int = specific feed only
+     */
+    public static function manual_send( $entry_id, $feed_id = null ) {
+        $entry = GFAPI::get_entry( $entry_id );
+        if ( is_wp_error( $entry ) ) return $entry;
+ 
+        $form  = GFAPI::get_form( $entry['form_id'] );
+        $feeds = GFGS_Database::get_feeds_by_form( $form['id'] );
+ 
+        $sent   = 0;
         $errors = [];
-
-        foreach($feeds as $feed){
-            if(!$feed->is_active) continue;
-
+ 
+        foreach ( $feeds as $feed ) {
+            // If a specific feed_id was requested, skip all others
+            if ( $feed_id !== null && (int) $feed->id !== (int) $feed_id ) continue;
+            if ( ! $feed->is_active ) continue;
+ 
             $processor = new self();
-            $processor->process_single_feed($feed, $entry, $form);
-            $sent++;
+            try {
+                $processor->process_single_feed( $feed, $entry, $form );
+                $sent++;
+            } catch ( \Exception $e ) {
+                $errors[] = $e->getMessage();
+            }
         }
-
-        return ['sent' => $sent, 'errors' => $errors];
+ 
+        if ( $sent === 0 && $feed_id !== null ) {
+            return new WP_Error( 'no_feed', 'Feed not found or is inactive.' );
+        }
+ 
+        return [ 'sent' => $sent, 'errors' => $errors ];
     }
 
     private function log( string $message, string $level = 'notice' ) {

@@ -30,6 +30,7 @@ class GFGS_Database {
             sheet_id       VARCHAR(255)    DEFAULT '',
             sheet_name     VARCHAR(255)    DEFAULT '',
             field_map      LONGTEXT        DEFAULT '',
+            date_formats   LONGTEXT        DEFAULT '',
             conditions     LONGTEXT        DEFAULT '',
             send_event     VARCHAR(100)    NOT NULL DEFAULT 'form_submit',
             is_active      TINYINT(1)      NOT NULL DEFAULT 1,
@@ -81,17 +82,15 @@ class GFGS_Database {
     }
 
     // ── Feeds ────────────────────────────────────────────────────────────────
-    public static function save_feed( $data ) {
+
+    /**
+     * Save feed: accepts array with pre-encoded JSON fields.
+     * Use save_feed_raw when JSON encoding has already been done.
+     */
+    public static function save_feed_raw( $data ) {
         global $wpdb;
         $table = $wpdb->prefix . self::FEEDS_TABLE;
-
-        // Encode arrays
-        foreach ( [ 'field_map', 'conditions' ] as $key ) {
-            if ( isset( $data[ $key ] ) && is_array( $data[ $key ] ) ) {
-                $data[ $key ] = wp_json_encode( $data[ $key ] );
-            }
-        }
-
+ 
         if ( ! empty( $data['id'] ) ) {
             $id = (int) $data['id'];
             unset( $data['id'] );
@@ -100,6 +99,18 @@ class GFGS_Database {
         }
         $wpdb->insert( $table, $data );
         return $wpdb->insert_id;
+    }
+
+    /**
+     * Save feed: accepts arrays for field_map/date_formats/conditions and encodes them.
+     */
+    public static function save_feed( $data ) {
+        foreach ( [ 'field_map', 'date_formats', 'conditions' ] as $key ) {
+            if ( isset( $data[ $key ] ) && is_array( $data[ $key ] ) ) {
+                $data[ $key ] = wp_json_encode( $data[ $key ] );
+            }
+        }
+        return self::save_feed_raw( $data );
     }
 
     public static function get_feeds_by_form( $form_id ) {
@@ -135,11 +146,26 @@ class GFGS_Database {
     }
 
     private static function decode_feed( $row ) {
-        foreach ( [ 'field_map', 'conditions' ] as $key ) {
+        foreach ( [ 'field_map', 'date_formats', 'conditions' ] as $key ) {
             if ( isset( $row->$key ) && is_string( $row->$key ) ) {
                 $row->$key = json_decode( $row->$key, true ) ?: [];
             }
+            if ( ! isset( $row->$key ) ) {
+                $row->$key = [];
+            }
         }
+ 
+        // Normalise field_map keys: old schema used 'column'/'gf_field', new uses 'sheet_column'/'field_id'
+        if ( is_array( $row->field_map ) ) {
+            $row->field_map = array_map( function ( $m ) {
+                return [
+                    'sheet_column' => $m['sheet_column'] ?? $m['column']   ?? '',
+                    'field_id'     => $m['field_id']     ?? $m['gf_field'] ?? '',
+                    'field_type'   => $m['field_type']   ?? 'standard',
+                ];
+            }, $row->field_map );
+        }
+ 
         return $row;
     }
 }
