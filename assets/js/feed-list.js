@@ -17,6 +17,19 @@
     // Safety check: Exit if we aren't on the correct admin page
     if ( ! DATA || ! $('#gfgs-app').length ) return;
 
+    // Define $app
+    const $app = $('#gfgs-app');
+
+    // Robust form ID detection: try gfgsData first, then URL param
+    function getFormId() {
+        if ( DATA && DATA.formId && parseInt( DATA.formId ) > 0 ) {
+            return parseInt( DATA.formId );
+        }
+        // Fallback: read from URL ?id=123
+        const params = new URLSearchParams( window.location.search );
+        return parseInt( params.get('id') || params.get('form_id') || 0 );
+    }
+
     /**
      * App State Object
      * Keep track of data currently loaded in the browser to avoid unnecessary API calls.
@@ -25,7 +38,7 @@
         feeds:        DATA.feeds    || [], // List of existing feeds
         accounts:     DATA.accounts || [], // Connected Google Accounts
         fields:       DATA.fields   || [], // Form fields for mapping
-        formId:       DATA.formId   || 0, // Current Gravity Form Id
+        formId:       getFormId(), // Current Gravity Form Id
         editing:      null, // The feed currently being edited
         spreadsheets: [], // Cached list of Google Sheets for the dropdown
         sheets:       [], // Cached list of individual tabs/sheets
@@ -33,7 +46,12 @@
         notice:       null, // Success/Error notifications
     };
 
-    const $app = $('#gfgs-app');
+    // $app is defined now, this is safe
+    if ( ! state.formId ) {
+        $app.html('<div class="gfgs-notice error">Could not determine form ID. Please refresh the page.</div>');
+        return;
+    }
+
     renderFeedList();
 
     // ── Feed List UI ─────────────────────────────────────────────────────────────
@@ -178,14 +196,10 @@
             form_id: state.formId,
         }, res => {
             if ( res.success ) {
-                $app.html(res.data.html); // Swap the table for the editor form
-                bindEditorEvents();
+                $app.html(res.data.html);
+                bindEditorEvents(); 
 
-                /**
-                 * If editing an exiting feed, we need to re-populate the Google API dropdowns.
-                 * This follows a waterfall approach:
-                 * 1. Load Spreadsheets -> 2. Load Sheets -> 3. Load Headers
-                 */
+                // Waterfall: load spreadsheets → sheets → headers for existing feeds
                 if ( feed.account_id && feed.spreadsheet_id ) {
                     loadSpreadsheets(feed.account_id, () => {
                         loadSheets(feed.account_id, feed.spreadsheet_id, () => {
@@ -195,10 +209,15 @@
                         });
                     });
                 } else if ( feed.account_id ) {
-                    // Just load spreadsheets if it's new feed but account is selected
                     loadSpreadsheets(feed.account_id);
                 }
+            } else {
+                console.error('Feed editor error:', res.data);
+                alert((res.data && res.data.message) || 'Could not load feed editor. Please try again.');
             }
+        }).fail(function (jqXHR) {
+            console.error('AJAX failed:', jqXHR.responseText);
+            alert('Could not load feed editor. Please try again.');
         });
     }
 
@@ -225,4 +244,4 @@
             if ( res.success && callback ) callback(res);
         });
     }
-});
+})(jQuery);

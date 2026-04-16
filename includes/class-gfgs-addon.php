@@ -233,7 +233,18 @@ class GFGS_Addon extends GFFeedAddOn{
     }
 
     public function feed_list_page( $form = null ) {
-		$form_id = is_array( $form ) ? $form['id'] : intval( $form );
+		$form_id = is_array( $form ) ? (int) $form['id'] : intval( $form );
+
+        // Only fall back to $_GET if GF didn't pass it
+        if ( ! $form_id ) {
+            $form_id = isset( $_GET['id'] ) ? intval( $_GET['id'] ) : 0;
+        }
+
+        if(!$form_id){
+            echo '<div class="notice notice-error"><p>Could not determine form ID.</p></div>';
+            return;
+        }
+
         wp_enqueue_style('gfgs-variable');
         wp_enqueue_style('gfgs-components');
         wp_enqueue_style('gfgs-feed-list');
@@ -243,9 +254,29 @@ class GFGS_Addon extends GFFeedAddOn{
         wp_enqueue_script('gfgs-common');
         wp_enqueue_script('gfgs-feed');
 
-        $form     = GFAPI::get_form( $form_id );
+        $form_data     = GFAPI::get_form( $form_id );
         $feeds    = GFGS_Database::get_feeds_by_form( $form_id );
         $accounts = GFGS_Database::get_accounts();
+
+        //Build fields list
+        $fields = [];
+        if ( ! empty( $form_data['fields'] ) ) {
+            foreach ( $form_data['fields'] as $field ) {
+                if ( is_object( $field ) && isset( $field->inputs ) && is_array( $field->inputs ) ) {
+                    foreach ( $field->inputs as $input ) {
+                        $fields[] = [
+                            'id'    => (string) $input['id'],
+                            'label' => strip_tags( $field->label . ' (' . $input['label'] . ')' ),
+                        ];
+                    }
+                } else {
+                    $fields[] = [
+                        'id'    => (string) $field->id,
+                        'label' => strip_tags( $field->label ?? 'Field ' . $field->id ),
+                    ];
+                }
+            }
+        }
 
         wp_localize_script( 'gfgs-feed', 'gfgsData', [
             'formId' => $form_id,
@@ -253,7 +284,21 @@ class GFGS_Addon extends GFFeedAddOn{
             'accounts' => array_map( fn($a) => (array)$a, $accounts ),
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('gfgs_nonce'),
+            'fields' => $fields,
+            'addAccountUrl' => admin_url('admin.php?page=gf_settings&subview=gf-google-sheets&gfgs_view=add_account'),
+            'feedEvents' => [
+                'form_submit' => __('Form Submit', 'GFGS'),
+                'payment' => __('Payment', 'GFGS'),
+            ],
+            'i18n' => [
+                'feedList' => __('Google Sheets Feeds', 'GFGS'),
+                'addFeed' => __('Add New Feed', 'GFGS'),
+                'noFeed' => __('No feeds yet.', 'GFGS'),
+                'confirmDel' => __('Delete this feed?', 'GFGS'),
+            ],
         ]);
+
+        error_log('GFGS feed_list_page form_id: ' . $form_id);
 
         $this->render_template('feeds/feed-list', [
             'form_id' => $form_id,
