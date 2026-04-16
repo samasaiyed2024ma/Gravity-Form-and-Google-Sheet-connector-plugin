@@ -47,6 +47,7 @@ final class GF_Google_Sheets {
 
         // 1. Load the addon framework first
         GFForms::include_addon_framework();
+        GFForms::include_feed_addon_framework();
 
         // 2. Now it's safe to load all classes that depend on GFAddOn
         require_once GFGS_PLUGIN_DIR . 'includes/class-gfgs-database.php';
