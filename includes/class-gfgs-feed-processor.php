@@ -75,7 +75,7 @@ class GFGS_Feed_Processor{
      */
     public function process_single_feed( $feed, $entry, $form ) {
         $conditions = is_array( $feed->conditions ) ? $feed->conditions : [];
- 
+                
         // Check conditional logic
         if ( ! GFGS_Field_Mapper::check_conditions( $conditions, $entry, $form ) ) {
             $this->log( "Feed #{$feed->id} skipped (conditions not met) for entry #{$entry['id']}" );
