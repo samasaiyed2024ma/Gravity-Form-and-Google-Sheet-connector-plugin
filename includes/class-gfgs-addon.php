@@ -343,9 +343,16 @@ class GFGS_Addon extends GFFeedAddOn{
             if ( isset( $arr[ $key ] ) && is_string( $arr[ $key ] ) ) {
                 $arr[ $key ] = json_decode( $arr[ $key ], true ) ?: [];
             }
-            if ( ! isset( $arr[ $key ] ) ) {
-                $arr[ $key ] = [];
-            }
+            if ( $key === 'conditions' ) {
+				$arr[ $key ] = wp_parse_args( (array) $arr[ $key ], [
+					'enabled' => false,
+					'action'  => 'send',
+					'logic'   => 'all',
+					'rules'   => [],
+				] );
+			} elseif ( ! isset( $arr[ $key ] ) ) {
+				$arr[ $key ] = [];
+			}
         }
  
         // Normalise field_map: support both old 'column'/'field_id' and new 'sheet_column'/'field_id'
@@ -655,6 +662,11 @@ class GFGS_Addon extends GFFeedAddOn{
         }
 
         $feed_id = GFGS_Database::save_feed_raw( $data );
+		if ( is_wp_error( $feed_id ) ) {
+			wp_send_json_error([
+				'message' => $feed_id->get_error_message()
+			]);
+		}
         wp_send_json_success( [ 'feed_id' => $feed_id ] );
     }
 

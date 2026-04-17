@@ -88,17 +88,26 @@ class GFGS_Database {
      * Use save_feed_raw when JSON encoding has already been done.
      */
     public static function save_feed_raw( $data ) {
-        global $wpdb;
-        $table = $wpdb->prefix . self::FEEDS_TABLE;
- 
-        if ( ! empty( $data['id'] ) ) {
-            $id = (int) $data['id'];
-            unset( $data['id'] );
-            $wpdb->update( $table, $data, [ 'id' => $id ] );
-            return $id;
-        }
-        $wpdb->insert( $table, $data );
-        return $wpdb->insert_id;
+		global $wpdb;
+		$table = $wpdb->prefix . self::FEEDS_TABLE;
+
+		if ( ! empty( $data['id'] ) ) {
+			$id = (int) $data['id'];
+			unset( $data['id'] );
+			$result = $wpdb->update( $table, $data, [ 'id' => $id ] );
+
+			if ( $result === false ) {
+				return new WP_Error( 'db_update_error', $wpdb->last_error );
+			}
+			return $id;
+		}
+
+		$result = $wpdb->insert( $table, $data );
+		if ( $result === false ) {
+			return new WP_Error( 'db_insert_error', $wpdb->last_error );
+		}
+
+		return $wpdb->insert_id;
     }
 
     /**
