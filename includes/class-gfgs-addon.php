@@ -290,10 +290,6 @@ class GFGS_Addon extends GFFeedAddOn{
         ]);
     }
 
-    public function form_settings_page( $form_id = 0 ) {
-        $this->feed_list_page( $form_id );
-    }
-
     // ── Helper: build fields list with type info ───────────────────────────────
     public function build_field_list($form_data){
         $fields = [];
