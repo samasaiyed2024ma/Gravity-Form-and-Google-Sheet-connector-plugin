@@ -236,7 +236,7 @@
                     <div class="gfgs-section-title">Spreadsheet</div>
                     <div class="gfgs-row-inline">
                         <select id="gfgs-spreadsheet-select" class="gfgs-select" ${!accounts.length ? 'disabled' : ''}>${ssOptions}</select>
-                        <button class="gfgs-btn gfgs-btn-outline gfgs-btn-sm" id="gfgs-refresh-spreadsheets" title="Refresh spreadsheet list">↻ Refresh Spreadsheets</button>
+                        <button class="gfgs-btn gfgs-btn-refresh" id="gfgs-refresh-spreadsheets" title="Refresh spreadsheet list">↻ Refresh Spreadsheets</button>
                         <span class="gfgs-spinner" id="gfgs-ss-spinner" style="display:none"></span>
                     </div>
                 </div>
@@ -261,7 +261,7 @@
                     <div class="gfgs-section-title">
                         Field Mapping
                         <div class="gfgs-section-title-actions">
-                            <button class="gfgs-btn gfgs-btn-outline gfgs-btn-sm" id="gfgs-refresh-fields" title="Refresh columns from sheet">↻ Refresh Sheet Columns</button>
+                            <button class="gfgs-btn gfgs-btn-refresh" id="gfgs-refresh-fields" title="Refresh columns from sheet">↻ Refresh Sheet Columns</button>
                             <span class="gfgs-spinner" id="gfgs-hd-spinner" style="display:none"></span>
                         </div>
                     </div>

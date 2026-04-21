@@ -51,7 +51,7 @@
 }
 
 .gfgs-section-title {
-    font-size: 13px;
+    font-size: 14px !important;
     font-weight: 600;
     color: #1e1e1e;
     margin-bottom: 10px;
@@ -89,6 +89,10 @@
     color: #2271b1;
 }
 
+.gfgs-btn-refresh{
+	background-color: #f0f6fc !important;
+}
+
 /* ── Field Mapper ─────────────────────────────────────────────────────────── */
 
 .gfgs-mapper-row {
@@ -123,12 +127,9 @@
 }
 
 .gfgs-date-format-row {
-    width: 100%;
-    padding-left: 150px;
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 8px;
-    margin-top: 4px;
 }
 
 .gfgs-add-field-row {
