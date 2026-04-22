@@ -3,21 +3,21 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 class GFGS_Database {
 
-    const FEEDS_TABLE     = 'gfgs_feeds';
-    const ACCOUNTS_TABLE  = 'gfgs_accounts';
+    const FEEDS_TABLE    = 'gfgs_feeds';
+    const ACCOUNTS_TABLE = 'gfgs_accounts';
 
     public static function create_tables() {
         global $wpdb;
         $charset = $wpdb->get_charset_collate();
 
         $sql_accounts = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}" . self::ACCOUNTS_TABLE . " (
-            id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            account_name VARCHAR(255)    NOT NULL,
-            email        VARCHAR(255)    NOT NULL,
-            access_token LONGTEXT        NOT NULL,
-            refresh_token TEXT           NOT NULL,
-            token_expires BIGINT         NOT NULL DEFAULT 0,
-            created_at   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            account_name  VARCHAR(255)    NOT NULL,
+            email         VARCHAR(255)    NOT NULL,
+            access_token  LONGTEXT        NOT NULL,
+            refresh_token TEXT            NOT NULL,
+            token_expires BIGINT          NOT NULL DEFAULT 0,
+            created_at    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id)
         ) $charset;";
 
@@ -48,24 +48,30 @@ class GFGS_Database {
         update_option( 'gfgs_db_version', GFGS_VERSION );
     }
 
-    // ── Accounts ────────────────────────────────────────────────────────────
+    // ── Accounts ──────────────────────────────────────────────────────────────
 
     public static function save_account( $data ) {
         global $wpdb;
         $table = $wpdb->prefix . self::ACCOUNTS_TABLE;
+
         if ( ! empty( $data['id'] ) ) {
-            $id = (int) $data['id']; // Store it
-            unset($data['id']);      // Remove it from the update set
+            $id = (int) $data['id'];
+            unset( $data['id'] );
             $wpdb->update( $table, $data, [ 'id' => $id ] );
             return $id;
         }
+
         $wpdb->insert( $table, $data );
         return $wpdb->insert_id;
     }
 
     public static function get_accounts() {
         global $wpdb;
-        return $wpdb->get_results( "SELECT id, account_name, email, token_expires, refresh_token FROM {$wpdb->prefix}" . self::ACCOUNTS_TABLE . " ORDER BY account_name ASC" );
+        return $wpdb->get_results(
+            "SELECT id, account_name, email, token_expires, refresh_token
+             FROM {$wpdb->prefix}" . self::ACCOUNTS_TABLE . "
+             ORDER BY account_name ASC"
+        );
     }
 
     public static function get_account( $id ) {
@@ -81,37 +87,36 @@ class GFGS_Database {
         $wpdb->delete( $wpdb->prefix . self::ACCOUNTS_TABLE, [ 'id' => (int) $id ] );
     }
 
-    // ── Feeds ────────────────────────────────────────────────────────────────
+    // ── Feeds ─────────────────────────────────────────────────────────────────
 
     /**
-     * Save feed: accepts array with pre-encoded JSON fields.
-     * Use save_feed_raw when JSON encoding has already been done.
+     * Save a feed. Accepts pre-encoded JSON strings for array fields.
      */
     public static function save_feed_raw( $data ) {
-		global $wpdb;
-		$table = $wpdb->prefix . self::FEEDS_TABLE;
+        global $wpdb;
+        $table = $wpdb->prefix . self::FEEDS_TABLE;
 
-		if ( ! empty( $data['id'] ) ) {
-			$id = (int) $data['id'];
-			unset( $data['id'] );
-			$result = $wpdb->update( $table, $data, [ 'id' => $id ] );
+        if ( ! empty( $data['id'] ) ) {
+            $id = (int) $data['id'];
+            unset( $data['id'] );
+            $result = $wpdb->update( $table, $data, [ 'id' => $id ] );
+            if ( $result === false ) {
+                return new WP_Error( 'db_update_error', $wpdb->last_error );
+            }
+            return $id;
+        }
 
-			if ( $result === false ) {
-				return new WP_Error( 'db_update_error', $wpdb->last_error );
-			}
-			return $id;
-		}
+        $result = $wpdb->insert( $table, $data );
+        if ( $result === false ) {
+            return new WP_Error( 'db_insert_error', $wpdb->last_error );
+        }
 
-		$result = $wpdb->insert( $table, $data );
-		if ( $result === false ) {
-			return new WP_Error( 'db_insert_error', $wpdb->last_error );
-		}
-
-		return $wpdb->insert_id;
+        return $wpdb->insert_id;
     }
 
     /**
-     * Save feed: accepts arrays for field_map/date_formats/conditions and encodes them.
+     * Save a feed. Accepts raw arrays for field_map / date_formats / conditions
+     * and encodes them automatically.
      */
     public static function save_feed( $data ) {
         foreach ( [ 'field_map', 'date_formats', 'conditions' ] as $key ) {
@@ -163,7 +168,7 @@ class GFGS_Database {
                 $row->$key = [];
             }
         }
- 
+
         // Normalise field_map keys: old schema used 'column'/'gf_field', new uses 'sheet_column'/'field_id'
         if ( is_array( $row->field_map ) ) {
             $row->field_map = array_map( function ( $m ) {
@@ -174,7 +179,7 @@ class GFGS_Database {
                 ];
             }, $row->field_map );
         }
- 
+
         return $row;
     }
 }

@@ -1,6 +1,22 @@
 /**
  * Feed List Controller
- * This script handles the Feed List table, AJAX toggling of feed status, and the transition into the Feed Editor View.
+ * Handles the Feed List table, AJAX toggling of feed status,
+ * and the Feed Editor view.
+ *
+ * Custom template syntax (when field type = "Custom Value"):
+ *   {28}        → full formatted value of field 28
+ *   {28.3}      → raw sub-field value (e.g. quantity, price)
+ *   {28:label}  → choice label(s)
+ *   {28:value}  → choice value(s)
+ *
+ * Multi-line templates: write one expression per line.
+ * Each line is resolved independently. Empty results are skipped.
+ *
+ * Examples:
+ *   {5} - {7}
+ *   {26:label} - {28.3}
+ *   {26:label} - {29.3}
+ *   {26:label} - {30.3}
  */
 
 (function ($) {
@@ -46,7 +62,6 @@
         notice:       null, // Success/Error notifications
     };
 
-    // $app is defined now, this is safe
     if ( ! state.formId ) {
         $app.html('<div class="gfgs-notice error">Could not determine form ID. Please refresh the page.</div>');
         return;
@@ -67,12 +82,12 @@
                 <button class="gfgs-btn gfgs-btn-primary" id="gfgs-add-feed">+ Add New Feed</button>
             </div>
         </div>`;
- 
+
         if (state.notice) {
             html += `<div class="gfgs-notice ${esc(state.notice.type)}"><p>${esc(state.notice.msg)}</p></div>`;
             state.notice = null;
         }
- 
+
         if (!state.feeds.length) {
             html += `<div class="gfgs-empty-state">
                 <div class="gfgs-empty-icon">📊</div>
@@ -87,7 +102,9 @@
                 </tr></thead><tbody>`;
             state.feeds.forEach(feed => {
                 const eventLabel = EVENTS[feed.send_event] || feed.send_event || '—';
-                const sheetInfo = feed.sheet_name ? `<span class="gfgs-sheet-badge">${esc(feed.sheet_name)}</span>` : '<span class="gfgs-muted">—</span>';
+                const sheetInfo  = feed.sheet_name
+                    ? `<span class="gfgs-sheet-badge">${esc(feed.sheet_name)}</span>`
+                    : '<span class="gfgs-muted">—</span>';
                 html += `<tr data-feed-id="${feed.id}">
                     <td><strong>${esc(feed.feed_name)}</strong></td>
                     <td>${sheetInfo}</td>
@@ -106,7 +123,7 @@
             });
             html += '</tbody></table></div>';
         }
- 
+
         $app.html(html);
         bindListEvents();
     }
@@ -118,7 +135,7 @@
         $app.off();
         $app.on('click', '#gfgs-add-feed, #gfgs-add-feed-empty', () => startEditing(newFeed()));
         $app.on('click', '.gfgs-edit-feed', function () {
-            const id = $(this).data('id');
+            const id   = $(this).data('id');
             const feed = state.feeds.find(f => f.id == id);
             if (feed) startEditing(JSON.parse(JSON.stringify(feed)));
         });
@@ -132,7 +149,7 @@
             });
         });
         $app.on('change', '.gfgs-toggle-feed', function () {
-            const id = $(this).data('id');
+            const id     = $(this).data('id');
             const active = $(this).prop('checked') ? 1 : 0;
             feedAjax('gfgs_toggle_feed', { feed_id: id, active }, () => {
                 const f = state.feeds.find(f => f.id == id);
@@ -147,7 +164,7 @@
      * Transition from the List view to Editor view.
      * @param {Object} feed - The feed object to edit. 
      */
-   function newFeed() {
+    function newFeed() {
         return {
             id: 0, form_id: state.formId, feed_name: '', is_active: 1,
             account_id: state.accounts.length ? state.accounts[0].id : '',
@@ -155,10 +172,10 @@
             send_event: 'form_submit',
             field_map: [],
             date_formats: {},
-            conditions: { enabled: false, action: 'send', logic: 'all', rules: [] }
+            conditions: { enabled: false, action: 'send', logic: 'all', rules: [] },
         };
     }
- 
+
     function startEditing(feed) {
         state.editing      = feed;
         state.spreadsheets = [];
@@ -166,31 +183,28 @@
         state.headers      = [];
         renderEditor();
     }
- 
+
     function renderEditor() {
-        const feed     = state.editing;
-        const isNew    = !feed.id;
-        const accounts = state.accounts;
+        const feed        = state.editing;
+        const isNew       = !feed.id;
+        const accounts    = state.accounts;
         const dateFormats = feed.date_formats || {};
- 
+
         let accountOptions = `<option value="">— Select Account —</option>`;
         accounts.forEach(a => {
-            const sel = feed.account_id == a.id ? 'selected' : '';
-            accountOptions += `<option value="${a.id}" ${sel}>${esc(a.account_name || a.email)}</option>`;
+            accountOptions += `<option value="${a.id}" ${feed.account_id == a.id ? 'selected' : ''}>${esc(a.account_name || a.email)}</option>`;
         });
- 
+
         let ssOptions = `<option value="">— Select Spreadsheet —</option>`;
         state.spreadsheets.forEach(ss => {
-            const sel = feed.spreadsheet_id == ss.id ? 'selected' : '';
-            ssOptions += `<option value="${esc(ss.id)}" ${sel}>${esc(ss.name)}</option>`;
+            ssOptions += `<option value="${esc(ss.id)}" ${feed.spreadsheet_id == ss.id ? 'selected' : ''}>${esc(ss.name)}</option>`;
         });
- 
+
         let sheetOptions = `<option value="">— Select Sheet Tab —</option>`;
         state.sheets.forEach(sh => {
-            const sel = feed.sheet_name == sh.title ? 'selected' : '';
-            sheetOptions += `<option value="${esc(sh.title)}" ${sel}>${esc(sh.title)}</option>`;
+            sheetOptions += `<option value="${esc(sh.title)}" ${feed.sheet_name == sh.title ? 'selected' : ''}>${esc(sh.title)}</option>`;
         });
- 
+
         const eventOptions = [
             { value: 'form_submit',          label: 'Form Submission' },
             { value: 'payment_completed',    label: 'Payment Completed' },
@@ -198,10 +212,10 @@
             { value: 'submission_completed', label: 'After All Notifications Sent' },
             { value: 'entry_updated',        label: 'Entry Updated' },
         ].map(e => `<option value="${e.value}" ${feed.send_event === e.value ? 'selected' : ''}>${e.label}</option>`).join('');
- 
-        const fieldMapHtml = renderFieldMap(feed.field_map, state.headers, state.fields, dateFormats);
+
+        const fieldMapHtml   = renderFieldMap(feed.field_map, state.headers, state.fields, dateFormats);
         const conditionsHtml = renderConditions(feed.conditions, state.fields);
- 
+
         const html = `
         <div class="gfgs-editor">
             <div class="gfgs-editor-header">
@@ -213,16 +227,16 @@
                     <span class="gfgs-toggle-label">Active</span>
                 </label>
             </div>
- 
+
             <div class="gfgs-editor-body">
- 
-                <!-- Section: Feed Name -->
+
+                <!-- Feed Name -->
                 <div class="gfgs-section">
                     <div class="gfgs-section-title">Feed Name</div>
                     <input type="text" id="gfgs-feed-name" class="gfgs-input" value="${esc(feed.feed_name)}" placeholder="e.g. Contact Form Responses">
                 </div>
- 
-                <!-- Section: Google Account -->
+
+                <!-- Google Account -->
                 <div class="gfgs-section">
                     <div class="gfgs-section-title">Google Account</div>
                     ${accounts.length === 0
@@ -230,18 +244,18 @@
                         : `<select id="gfgs-account-select" class="gfgs-select">${accountOptions}</select>`
                     }
                 </div>
- 
-                <!-- Section: Spreadsheet -->
+
+                <!-- Spreadsheet -->
                 <div class="gfgs-section">
                     <div class="gfgs-section-title">Spreadsheet</div>
                     <div class="gfgs-row-inline">
                         <select id="gfgs-spreadsheet-select" class="gfgs-select" ${!accounts.length ? 'disabled' : ''}>${ssOptions}</select>
-                        <button class="gfgs-btn gfgs-btn-refresh" id="gfgs-refresh-spreadsheets" title="Refresh spreadsheet list">↻ Refresh Spreadsheets</button>
+                        <button class="gfgs-btn gfgs-btn-refresh" id="gfgs-refresh-spreadsheets">↻ Refresh Spreadsheets</button>
                         <span class="gfgs-spinner" id="gfgs-ss-spinner" style="display:none"></span>
                     </div>
                 </div>
- 
-                <!-- Section: Sheet Tab -->
+
+                <!-- Sheet Tab -->
                 <div class="gfgs-section">
                     <div class="gfgs-section-title">Sheet Tab</div>
                     <div class="gfgs-row-inline">
@@ -249,19 +263,19 @@
                         <span class="gfgs-spinner" id="gfgs-sh-spinner" style="display:none"></span>
                     </div>
                 </div>
- 
-                <!-- Section: Send Trigger -->
+
+                <!-- Send Trigger -->
                 <div class="gfgs-section">
                     <div class="gfgs-section-title">When to Send</div>
                     <select id="gfgs-send-event" class="gfgs-select">${eventOptions}</select>
                 </div>
- 
-                <!-- Section: Field Mapping -->
+
+                <!-- Field Mapping -->
                 <div class="gfgs-section">
                     <div class="gfgs-section-title">
                         Field Mapping
                         <div class="gfgs-section-title-actions">
-                            <button class="gfgs-btn gfgs-btn-refresh" id="gfgs-refresh-fields" title="Refresh columns from sheet">↻ Refresh Sheet Columns</button>
+                            <button class="gfgs-btn gfgs-btn-refresh" id="gfgs-refresh-fields">↻ Refresh Sheet Columns</button>
                             <span class="gfgs-spinner" id="gfgs-hd-spinner" style="display:none"></span>
                         </div>
                     </div>
@@ -274,24 +288,24 @@
                         <button class="gfgs-btn gfgs-btn-outline gfgs-btn-sm" id="gfgs-add-mapping">+ Add Field</button>
                     </div>
                 </div>
- 
-                <!-- Section: Conditional Logic -->
+
+                <!-- Conditional Logic -->
                 <div class="gfgs-section">
                     <div class="gfgs-section-title">Conditional Logic</div>
                     <div id="gfgs-conditions">${conditionsHtml}</div>
                 </div>
- 
+
             </div><!-- .gfgs-editor-body -->
- 
+
             <div class="gfgs-editor-footer">
                 <button class="gfgs-btn gfgs-btn-primary" id="gfgs-save-feed">Save Feed</button>
                 <span class="gfgs-save-status" id="gfgs-save-status"></span>
             </div>
         </div>`;
- 
+
         $app.html(html);
         bindEditorEvents();
- 
+
         // Auto-load dropdowns for existing feeds
         if (feed.account_id && !state.spreadsheets.length) {
             loadSpreadsheets(feed.account_id, () => {
@@ -305,27 +319,24 @@
             });
         }
     }
- 
-    // ── FIELD MAP RENDERING ────────────────────────────────────────────────────
- 
+
+    // ── Field Map Rendering ───────────────────────────────────────────────────
+
     function renderFieldMap(fieldMap, headers, formFields, dateFormats) {
         if (!headers.length && !fieldMap.length) {
             return `<p class="gfgs-hint">Select a sheet tab above to load columns and map your form fields.</p>`;
         }
- 
+
         // If headers loaded, use them as the master list; else use saved field_map
         const columns = headers.length ? headers : fieldMap.map(m => m.sheet_column || m.column);
- 
         let html = '';
+
         columns.forEach(col => {
-            const mapping = fieldMap.find(m => (m.sheet_column || m.column) === col) || {};
-            const fieldId = mapping.field_id || mapping.gf_field || '';
-            const fieldType = mapping.field_type || 'standard'; // 'standard' | 'custom' | 'meta'
+            const mapping    = fieldMap.find(m => (m.sheet_column || m.column) === col) || {};
+            const fieldId    = mapping.field_id   || mapping.gf_field || '';
+            const fieldType  = mapping.field_type || 'standard';
             const dateFormat = (dateFormats && dateFormats[col]) || 'Y-m-d';
- 
-            // Check if this column is already mapped
-            const isMapped = !!fieldId;
- 
+
             html += `<div class="gfgs-mapper-row" data-column="${esc(col)}">
                 <div class="gfgs-mapper-col-name">${esc(col)}</div>
                 <div class="gfgs-mapper-controls">
@@ -340,14 +351,24 @@
                 <button class="gfgs-btn-icon gfgs-remove-mapping" data-col="${esc(col)}" title="Remove mapping">✕</button>
             </div>`;
         });
- 
+
         return html || `<p class="gfgs-hint">No columns found. Refresh the sheet columns above.</p>`;
     }
- 
+
     function renderFieldSelector(fieldType, fieldId, formFields, col) {
         if (fieldType === 'custom') {
-            return `<input type="text" class="gfgs-input gfgs-input-sm gfgs-custom-value" placeholder="Custom value or {field_id}" value="${esc(fieldId)}">`;
+            return `<textarea
+                class="gfgs-input gfgs-textarea-sm gfgs-custom-value"
+                rows="3"
+                placeholder="e.g. {5} or multi-line:&#10;{26:label} - {28.3}&#10;{26:label} - {29.3}"
+            >${esc(fieldId)}</textarea>
+            <p class="gfgs-hint" style="margin:4px 0 0">
+                Use <code>{field_id}</code> for full value, <code>{field_id.sub}</code> for sub-fields (e.g. <code>{28.3}</code> = quantity),
+                <code>{field_id:label}</code> or <code>{field_id:value}</code> for choices.
+                Write one expression per line — empty results are skipped automatically.
+            </p>`;
         }
+
         if (fieldType === 'meta') {
             const metaFields = [
                 { id: 'entry_id',       label: 'Entry ID' },
@@ -363,6 +384,7 @@
             });
             return `<select class="gfgs-select gfgs-select-sm gfgs-field-select">${opts}</select>`;
         }
+
         // Standard
         let opts = `<option value="">— Select Form Field —</option>`;
         formFields.forEach(f => {
@@ -370,29 +392,32 @@
         });
         return `<select class="gfgs-select gfgs-select-sm gfgs-field-select">${opts}</select>`;
     }
- 
+
     function renderDateFormatRow(fieldId, fieldType, formFields, dateFormat, col) {
         // Only show if mapped field is a date field
-        const field = formFields.find(f => f.id == fieldId);
+        const field  = formFields.find(f => f.id == fieldId);
         const isDate = field && field.type === 'date';
         if (!isDate || fieldType !== 'standard') return '';
- 
+
         const formats = [
-            { value: 'Y-m-d',   label: 'YYYY-MM-DD (2024-01-31)' },
-            { value: 'm/d/Y',   label: 'MM/DD/YYYY (01/31/2024)' },
-            { value: 'd/m/Y',   label: 'DD/MM/YYYY (31/01/2024)' },
-            { value: 'd-m-Y',   label: 'DD-MM-YYYY (31-01-2024)' },
-            { value: 'F j, Y',  label: 'January 31, 2024' },
-            { value: 'j F Y',   label: '31 January 2024' },
+            { value: 'Y-m-d',     label: 'YYYY-MM-DD (2024-01-31)' },
+            { value: 'm/d/Y',     label: 'MM/DD/YYYY (01/31/2024)' },
+            { value: 'd/m/Y',     label: 'DD/MM/YYYY (31/01/2024)' },
+            { value: 'd-m-Y',     label: 'DD-MM-YYYY (31-01-2024)' },
+            { value: 'F j, Y',    label: 'January 31, 2024' },
+            { value: 'j F Y',     label: '31 January 2024' },
             { value: 'timestamp', label: 'Unix Timestamp' },
         ];
-        let opts = formats.map(f => `<option value="${f.value}" ${dateFormat === f.value ? 'selected' : ''}>${f.label}</option>`).join('');
+        const opts = formats.map(f =>
+            `<option value="${f.value}" ${dateFormat === f.value ? 'selected' : ''}>${f.label}</option>`
+        ).join('');
+
         return `<div class="gfgs-date-format-row">
             <span class="gfgs-hint-inline">📅 Date format:</span>
             <select class="gfgs-select gfgs-select-xs gfgs-date-format" data-col="${esc(col)}">${opts}</select>
         </div>`;
     }
- 
+
     function renderUnmappedColumnOptions(fieldMap, headers) {
         const mappedCols = fieldMap.map(m => m.sheet_column || m.column);
         return headers
@@ -400,22 +425,19 @@
             .map(h => `<option value="${esc(h)}">${esc(h)}</option>`)
             .join('');
     }
- 
-    // ── CONDITIONS RENDERING ───────────────────────────────────────────────────
- 
+
+    // ── Conditions Rendering ──────────────────────────────────────────────────
+
     function renderConditions(conditions, formFields) {
         const enabled = conditions && conditions.enabled;
         const logic   = (conditions && conditions.logic) || 'all';
         const rules   = (conditions && conditions.rules) || [];
- 
-        let fieldOpts = `<option value="">— Select Field —</option>`;
-        formFields.forEach(f => fieldOpts += `<option value="${esc(f.id)}">${esc(f.label)}</option>`);
- 
+
         let rulesHtml = '';
         rules.forEach((rule, i) => {
             rulesHtml += renderConditionRule(rule, i, formFields);
         });
- 
+
         return `<div class="gfgs-conditions-wrap">
             <label class="gfgs-checkbox-label">
                 <input type="checkbox" id="gfgs-cond-enabled" ${enabled ? 'checked' : ''}>
@@ -435,32 +457,34 @@
             </div>
         </div>`;
     }
- 
+
     function renderConditionRule(rule, index, formFields) {
         const fieldId  = rule.field_id || '';
         const operator = rule.operator || 'is';
         const value    = rule.value    || '';
- 
+
         let fieldOpts = `<option value="">— Field —</option>`;
         formFields.forEach(f => {
             fieldOpts += `<option value="${esc(f.id)}" ${fieldId == f.id ? 'selected' : ''}>${esc(f.label)}</option>`;
         });
- 
+
         const operators = [
-            { v: 'is',           l: 'is' },
-            { v: 'isnot',        l: 'is not' },
-            { v: 'contains',     l: 'contains' },
-            { v: 'starts_with',  l: 'starts with' },
-            { v: 'ends_with',    l: 'ends with' },
-            { v: '>',            l: 'greater than' },
-            { v: '<',            l: 'less than' },
+            { v: 'is',          l: 'is' },
+            { v: 'isnot',       l: 'is not' },
+            { v: 'contains',    l: 'contains' },
+            { v: 'starts_with', l: 'starts with' },
+            { v: 'ends_with',   l: 'ends with' },
+            { v: '>',           l: 'greater than' },
+            { v: '<',           l: 'less than' },
         ];
-        let opOpts = operators.map(o => `<option value="${o.v}" ${operator === o.v ? 'selected' : ''}>${o.l}</option>`).join('');
- 
+        const opOpts = operators.map(o =>
+            `<option value="${o.v}" ${operator === o.v ? 'selected' : ''}>${o.l}</option>`
+        ).join('');
+
         // Try to render a smart value input based on field type
-        const field = state.fields.find(f => f.id == fieldId);
+        const field      = state.fields.find(f => f.id == fieldId);
         const valueInput = renderConditionValueInput(field, value, index);
- 
+
         return `<div class="gfgs-cond-rule" data-index="${index}">
             <select class="gfgs-select gfgs-select-sm gfgs-cond-field">${fieldOpts}</select>
             <select class="gfgs-select gfgs-select-sm gfgs-cond-operator">${opOpts}</select>
@@ -468,7 +492,7 @@
             <button class="gfgs-btn-icon gfgs-remove-rule" title="Remove">✕</button>
         </div>`;
     }
- 
+
     function renderConditionValueInput(field, value, index) {
         if (field && field.choices && field.choices.length) {
             let opts = `<option value="">— Select —</option>`;
@@ -479,30 +503,30 @@
         }
         return `<input type="text" class="gfgs-input gfgs-input-sm gfgs-cond-value" value="${esc(value)}" placeholder="Value">`;
     }
- 
-    // ── EDITOR EVENT BINDING ───────────────────────────────────────────────────
- 
+
+    // ── Editor Events ─────────────────────────────────────────────────────────
+
     function bindEditorEvents() {
         $app.off();
- 
+
         // Back
         $app.on('click', '#gfgs-back', () => {
             state.editing = null;
             renderFeedList();
         });
- 
+
         // Account change → load spreadsheets
         $app.on('change', '#gfgs-account-select', function () {
             const accountId = $(this).val();
-            state.editing.account_id = accountId;
+            state.editing.account_id     = $(this).val();
             state.editing.spreadsheet_id = '';
-            state.editing.sheet_name = '';
+            state.editing.sheet_name     = '';
             state.spreadsheets = [];
-            state.sheets = [];
-            state.headers = [];
+            state.sheets       = [];
+            state.headers      = [];
             if (accountId) loadSpreadsheets(accountId);
         });
- 
+
         // Refresh spreadsheets button
         $app.on('click', '#gfgs-refresh-spreadsheets', function () {
             const accountId = $('#gfgs-account-select').val();
@@ -510,54 +534,52 @@
             state.spreadsheets = [];
             loadSpreadsheets(accountId);
         });
- 
+
         // Spreadsheet change → load sheets
         $app.on('change', '#gfgs-spreadsheet-select', function () {
-            const ssId = $(this).val();
+            const ssId      = $(this).val();
             const accountId = $('#gfgs-account-select').val();
             state.editing.spreadsheet_id = ssId;
-            state.editing.sheet_name = '';
-            state.sheets = [];
-            state.headers = [];
+            state.editing.sheet_name     = '';
+            state.sheets   = [];
+            state.headers  = [];
             $('#gfgs-sheet-select').html('<option value="">— Select Sheet Tab —</option>').prop('disabled', !ssId);
             refreshFieldMapper();
             if (ssId && accountId) loadSheets(accountId, ssId);
         });
- 
+
         // Sheet change → load headers
         $app.on('change', '#gfgs-sheet-select', function () {
             const sheetName = $(this).val();
-            const ssId = $('#gfgs-spreadsheet-select').val();
+            const ssId      = $('#gfgs-spreadsheet-select').val();
             const accountId = $('#gfgs-account-select').val();
             state.editing.sheet_name = sheetName;
             state.headers = [];
             refreshFieldMapper();
             if (sheetName && ssId && accountId) loadHeaders(accountId, ssId, sheetName);
         });
- 
+
         // Refresh fields button
         $app.on('click', '#gfgs-refresh-fields', function () {
             const accountId = $('#gfgs-account-select').val();
-            const ssId = $('#gfgs-spreadsheet-select').val();
+            const ssId      = $('#gfgs-spreadsheet-select').val();
             const sheetName = $('#gfgs-sheet-select').val();
             if (!accountId || !ssId || !sheetName) return;
             state.headers = [];
             loadHeaders(accountId, ssId, sheetName);
         });
- 
+
         // Field type change in mapper
         $app.on('change', '.gfgs-field-type-select', function () {
-            const $row = $(this).closest('.gfgs-mapper-row');
-            const col  = $row.data('column');
-            const type = $(this).val();
-            const fieldId = '';
+            const $row     = $(this).closest('.gfgs-mapper-row');
+            const col      = $row.data('column');
+            const type     = $(this).val();
             const $controls = $row.find('.gfgs-mapper-controls');
-            // Replace only the field selector part (after the type select)
-            $controls.find('.gfgs-field-select, .gfgs-custom-value').remove();
-            $controls.append(renderFieldSelector(type, fieldId, state.fields, col));
+            $controls.find('.gfgs-field-select, .gfgs-custom-value, .gfgs-textarea-sm, .gfgs-hint').remove();
+            $controls.append(renderFieldSelector(type, '', state.fields, col));
             $row.find('.gfgs-date-format-row').remove();
         });
- 
+
         // Field select change in mapper (check for date type)
         $app.on('change', '.gfgs-field-select', function () {
             const $row    = $(this).closest('.gfgs-mapper-row');
@@ -567,25 +589,27 @@
             $row.find('.gfgs-date-format-row').remove();
             if (field && field.type === 'date') {
                 const dateFormat = (state.editing.date_formats && state.editing.date_formats[col]) || 'Y-m-d';
-                $row.find('.gfgs-mapper-controls').after(renderDateFormatRow(fieldId, 'standard', state.fields, dateFormat, col));
+                $row.find('.gfgs-mapper-controls').after(
+                    renderDateFormatRow(fieldId, 'standard', state.fields, dateFormat, col)
+                );
             }
         });
- 
+
         // Remove mapping row
         $app.on('click', '.gfgs-remove-mapping', function () {
             const col = $(this).data('col');
-            state.editing.field_map = state.editing.field_map.filter(m => (m.sheet_column || m.column) !== col);
+            state.editing.field_map = state.editing.field_map.filter(
+                m => (m.sheet_column || m.column) !== col
+            );
             $(this).closest('.gfgs-mapper-row').remove();
             refreshAddFieldDropdown();
         });
- 
+
         // Add new column mapping
         $app.on('click', '#gfgs-add-mapping', function () {
             const col = $('#gfgs-new-column-select').val();
             if (!col) return;
-            const newRow = { sheet_column: col, field_id: '', field_type: 'standard' };
-            state.editing.field_map.push(newRow);
-            const dateFormats = state.editing.date_formats || {};
+            state.editing.field_map.push({ sheet_column: col, field_id: '', field_type: 'standard' });
             const rowHtml = `<div class="gfgs-mapper-row" data-column="${esc(col)}">
                 <div class="gfgs-mapper-col-name">${esc(col)}</div>
                 <div class="gfgs-mapper-controls">
@@ -599,28 +623,27 @@
                 <button class="gfgs-btn-icon gfgs-remove-mapping" data-col="${esc(col)}" title="Remove">✕</button>
             </div>`;
             $('#gfgs-field-mapper').append(rowHtml);
-            refreshAddFieldDropdown();
-            // Remove hint if present
             $('#gfgs-field-mapper .gfgs-hint').remove();
+            refreshAddFieldDropdown();
         });
- 
+
         // Conditions toggle
         $app.on('change', '#gfgs-cond-enabled', function () {
             $('#gfgs-cond-body').toggle($(this).is(':checked'));
         });
- 
+
         // Add condition rule
         $app.on('click', '#gfgs-add-rule', function () {
             const newRule = { field_id: '', operator: 'is', value: '' };
             const index = $('#gfgs-cond-rules .gfgs-cond-rule').length;
             $('#gfgs-cond-rules').append(renderConditionRule(newRule, index, state.fields));
         });
- 
+
         // Remove condition rule
         $app.on('click', '.gfgs-remove-rule', function () {
             $(this).closest('.gfgs-cond-rule').remove();
         });
- 
+
         // Condition field change → re-render value input smartly
         $app.on('change', '.gfgs-cond-field', function () {
             const $rule   = $(this).closest('.gfgs-cond-rule');
@@ -629,14 +652,13 @@
             const field   = state.fields.find(f => f.id == fieldId);
             $rule.find('.gfgs-cond-value-wrap').html(renderConditionValueInput(field, '', index));
         });
- 
+
         // Save feed
         $app.on('click', '#gfgs-save-feed', saveFeed);
     }
- 
+
     function refreshAddFieldDropdown() {
-        const currentMap = collectFieldMap();
-        const mappedCols = currentMap.map(m => m.sheet_column);
+        const mappedCols = collectFieldMap().map(m => m.sheet_column);
         const $sel = $('#gfgs-new-column-select');
         $sel.html(`<option value="">— Add Column —</option>`);
         state.headers.filter(h => !mappedCols.includes(h)).forEach(h => {
@@ -644,34 +666,35 @@
         });
         $('#gfgs-add-field-row').toggle(state.headers.length > 0);
     }
- 
+
     function refreshFieldMapper() {
-        const feed       = state.editing;
+        const feed        = state.editing;
         const dateFormats = feed.date_formats || {};
         $('#gfgs-field-mapper').html(renderFieldMap(feed.field_map, state.headers, state.fields, dateFormats));
         refreshAddFieldDropdown();
     }
- 
-    // ── DATA COLLECTION ────────────────────────────────────────────────────────
- 
+
+    // ── Data Collection ───────────────────────────────────────────────────────
+
     function collectFieldMap() {
         const rows = [];
         $('#gfgs-field-mapper .gfgs-mapper-row').each(function () {
             const col       = $(this).data('column');
             const fieldType = $(this).find('.gfgs-field-type-select').val() || 'standard';
             let fieldId     = '';
+
             if (fieldType === 'custom') {
+                // Use textarea value for custom (supports multi-line templates)
                 fieldId = $(this).find('.gfgs-custom-value').val() || '';
             } else {
                 fieldId = $(this).find('.gfgs-field-select').val() || '';
             }
-            if (col) {
-                rows.push({ sheet_column: col, field_id: fieldId, field_type: fieldType });
-            }
+
+            if (col) rows.push({ sheet_column: col, field_id: fieldId, field_type: fieldType });
         });
         return rows;
     }
- 
+
     function collectDateFormats() {
         const formats = {};
         $('.gfgs-date-format').each(function () {
@@ -680,7 +703,7 @@
         });
         return formats;
     }
- 
+
     function collectConditions() {
         const enabled = $('#gfgs-cond-enabled').is(':checked');
         const logic   = $('#gfgs-cond-logic').val() || 'all';
@@ -693,22 +716,22 @@
         });
         return { enabled, logic, action: 'send', rules };
     }
- 
+
     function saveFeed() {
         const $btn    = $('#gfgs-save-feed');
         const $status = $('#gfgs-save-status');
         const feed    = state.editing;
- 
+
         const feedName = $('#gfgs-feed-name').val().trim();
         if (!feedName) { alert('Please enter a feed name.'); return; }
- 
-        const fieldMap   = collectFieldMap();
+
+        const fieldMap    = collectFieldMap();
         const dateFormats = collectDateFormats();
-        const conditions = collectConditions();
- 
+        const conditions  = collectConditions();
+
         $btn.prop('disabled', true).text('Saving…');
         $status.text('').removeClass('success error');
- 
+
         $.post(AJAX, {
             action:         'gfgs_save_feed',
             nonce:          NONCE,
@@ -727,8 +750,7 @@
         }, res => {
             $btn.prop('disabled', false).text('Save Feed');
             if (res.success) {
-                const savedId = res.data.feed_id;
-                // Update or insert in state
+                const savedId    = res.data.feed_id;
                 const existingIdx = state.feeds.findIndex(f => f.id == feed.id);
                 const updatedFeed = {
                     ...feed,
@@ -760,14 +782,14 @@
             $status.text('✗ Network error.').addClass('error');
         });
     }
- 
-    // ── AJAX LOADERS ───────────────────────────────────────────────────────────
- 
+
+    // ── AJAX Loaders ──────────────────────────────────────────────────────────
+
     function loadSpreadsheets(accountId, callback) {
         const $spinner = $('#gfgs-ss-spinner');
         $spinner.show();
         $('#gfgs-spreadsheet-select').prop('disabled', true);
- 
+
         $.post(AJAX, { action: 'gfgs_get_spreadsheets', nonce: NONCE, account_id: accountId }, res => {
             $spinner.hide();
             if (res.success) {
@@ -786,12 +808,12 @@
             }
         });
     }
- 
+
     function loadSheets(accountId, spreadsheetId, callback) {
         const $spinner = $('#gfgs-sh-spinner');
         $spinner.show();
         $('#gfgs-sheet-select').prop('disabled', true);
- 
+
         $.post(AJAX, { action: 'gfgs_get_sheets', nonce: NONCE, account_id: accountId, spreadsheet_id: spreadsheetId }, res => {
             $spinner.hide();
             if (res.success) {
@@ -810,17 +832,17 @@
             }
         });
     }
- 
+
     function loadHeaders(accountId, spreadsheetId, sheetName, callback) {
         const $spinner = $('#gfgs-hd-spinner');
         $spinner.show();
- 
+
         $.post(AJAX, { action: 'gfgs_get_sheet_headers', nonce: NONCE, account_id: accountId, spreadsheet_id: spreadsheetId, sheet_name: sheetName }, res => {
             $spinner.hide();
             if (res.success) {
                 state.headers = res.data || [];
                 // Merge: keep existing mappings, add new columns
-                const feed = state.editing;
+                const feed        = state.editing;
                 const existingCols = (feed.field_map || []).map(m => m.sheet_column || m.column);
                 state.headers.forEach(h => {
                     if (!existingCols.includes(h)) {
@@ -834,15 +856,14 @@
             }
         });
     }
- 
-    // ── HELPERS ───────────────────────────────────────────────────────────────
- 
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
     function feedAjax(action, data, callback) {
         $.post(AJAX, { action, nonce: NONCE, ...data }, res => {
             if (res.success && callback) callback(res);
-            else if (!res.success) {
-                console.error('gfgs ajax error', action, res);
-            }
+            else if (!res.success) console.error('gfgs ajax error', action, res);
         });
     }
+    
 })(jQuery);

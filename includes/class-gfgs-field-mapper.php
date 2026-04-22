@@ -3,11 +3,71 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 /**
  * Resolves Gravity Forms field values into sheet-ready strings.
+ *
+ * ── Template Syntax (field_type = 'custom') ─────────────────────────────────
+ *
+ * BASIC
+ *   {28}              Full formatted value of field 28
+ *
+ * SUB-FIELDS  (dot notation — reads entry sub-inputs directly)
+ *   {28.1}            Sub-input 1 of field 28
+ *   {28.3}            Sub-input 3 (e.g. product quantity)
+ *
+ * MODIFIERS  (colon notation — works on any field type)
+ *   {28:label}        Selected choice label(s), or field admin label for non-choice fields
+ *   {28:value}        Raw stored value / selected choice value(s)
+ *   {28:id}           The field's numeric ID
+ *
+ * NAMED SUB-FIELD ALIASES
+ *   Name:     {28:prefix} {28:first} {28:middle} {28:last} {28:suffix}
+ *   Address:  {28:street} {28:street2} {28:city} {28:state} {28:zip} {28:country}
+ *   Product:  {28:name} {28:price} {28:qty}
+ *   Date:     {28:date} {28:day} {28:month} {28:year}
+ *   File:     {28:url}
+ *
+ * MULTI-LINE TEMPLATES
+ *   Each line is processed independently.
+ *   Lines where all referenced fields have empty entry values are skipped.
+ *   If a line references a multi-choice field it loops once per selected choice.
+ *
+ *   Example:
+ *     {26:label} - {28.3}
+ *     {26:label} - {29.3}
+ *     → One output line per selected choice that has a non-empty related value.
  */
+
 class GFGS_Field_Mapper {
+
+    // ── Sub-field maps ────────────────────────────────────────────────────────
+
+    private const NAME_SUBFIELDS = [
+        'prefix' => '.2',
+        'first'  => '.3',
+        'middle' => '.4',
+        'last'   => '.6',
+        'suffix' => '.8',
+    ];
+
+    private const ADDRESS_SUBFIELDS = [
+        'street'  => '.1',
+        'street2' => '.2',
+        'city'    => '.3',
+        'state'   => '.4',
+        'zip'     => '.5',
+        'country' => '.6',
+    ];
+
+    private const PRODUCT_SUBFIELDS = [
+        'name'  => '.1',
+        'price' => '.2',
+        'qty'   => '.3',
+    ];
 
     // ── Public API ────────────────────────────────────────────────────────────
 
+	/**
+     * Build the full column→value row for one entry and one feed's field map.
+     */
     public static function build_row( array $field_map, array $entry, array $form, array $date_formats = [] ) : array {
         $row = [];
 
@@ -40,8 +100,9 @@ class GFGS_Field_Mapper {
             return self::resolve_meta( (string) $field_id, $entry );
         }
 
+		// Colon modifier in field_id e.g. "26:label"
         if ( is_string( $field_id ) && strpos( $field_id, ':' ) !== false ) {
-            return self::resolve_subfield( $field_id, $entry, $form );
+            return self::resolve_modifier( $field_id, $entry, $form );
         }
 
         $field = self::get_field( $form, (string) $field_id );
@@ -56,6 +117,9 @@ class GFGS_Field_Mapper {
         return self::format_field( $field, $entry );
     }
 
+	/**
+     * Evaluate feed conditional logic against an entry.
+     */
     public static function check_conditions( array $conditions, array $entry, array $form ) : bool {
         if ( empty( $conditions['enabled'] ) ) return true;
         if ( empty( $conditions['rules'] ) )   return true;
@@ -76,81 +140,397 @@ class GFGS_Field_Mapper {
 
     // ── Custom Template Interpolation ─────────────────────────────────────────
 
+    /**
+     * Entry point for custom templates.
+     * Splits multi-line templates and processes each line independently.
+     * Empty results are dropped so no blank lines appear in the sheet.
+     */
     private static function interpolate_custom( string $template, array $entry, array $form ) : string {
-        preg_match_all( '/\{(\d+(?:\.\d+)?)(?::(?:label|value))?\}/', $template, $matches );
-        $found_ids = array_unique( $matches[1] );
+        $lines  = explode( "\n", $template );
+        $output = [];
 
-        // Find the first multi-choice field referenced in the template
-        $repeater_field = null;
-        foreach ( $found_ids as $id ) {
-            $field = self::get_field( $form, explode( '.', $id )[0] );
-            if ( $field && self::is_multi_choice( $field ) ) {
-                $repeater_field = $field;
-                break;
+        foreach ( $lines as $line ) {
+            $line = trim( $line );
+            if ( $line === '' ) continue;
+
+            $result = self::process_single_line( $line, $entry, $form );
+            if ( $result !== '' ) {
+                $output[] = $result;
             }
         }
 
-        // No multi-choice field — single pass
-        if ( ! $repeater_field ) {
-            return self::process_template_tags( $template, $entry, $form );
-        }
-
-        // Loop the template once per selected value
-        $results = [];
-
-        if ( self::is_checkbox_style( $repeater_field ) ) {
-            foreach ( (array) $repeater_field->inputs as $index => $input ) {
-                if ( rgar( $entry, (string) $input['id'] ) ) {
-                    $results[] = self::process_template_tags( $template, $entry, $form, $repeater_field->id, $index );
-                }
-            }
-        } else {
-            foreach ( self::normalize_multi_values( rgar( $entry, $repeater_field->id ) ) as $val ) {
-                $results[] = self::process_template_tags( $template, $entry, $form, $repeater_field->id, trim( $val ) );
-            }
-        }
-
-        return implode( "\n", $results );
+        return implode( "\n", $output );
     }
 
-    private static function process_template_tags( string $template, array $entry, array $form, $loop_id = null, $loop_context = null ) : string {
-        return preg_replace_callback(
-            '/\{(\d+(?:\.\d+)?)(?::(label|value))?\}/',
-            function ( $matches ) use ( $entry, $form, $loop_id, $loop_context ) {
-                $raw_id   = $matches[1];
-                $modifier = $matches[2] ?? '';
-                $base_id  = explode( '.', $raw_id )[0];
-                $field    = self::get_field( $form, $base_id );
+    /**
+     * Processes one template line.
+     * If the line references a multi-choice field it loops once per selected choice.
+     * Otherwise it does a single-pass substitution.
+     */
+	private static function process_single_line( string $template, array $entry, array $form ) : string {
+		// Collect all tags in this line
+		preg_match_all( '/\{(\d+)(?:(\.\d+(?:\.\d+)*)|:([\w]+))?\}/', $template, $tag_matches, PREG_SET_ORDER );
 
+		if ( empty( $tag_matches ) ) {
+			return $template; // Plain text line, no tags — always output
+		}
+
+	    // Check if every field referenced in this line has an empty entry value.
+		// If ALL fields are empty, skip the line entirely.
+		$all_empty = true;
+		foreach ( $tag_matches as $tag ) {
+			$base_id  = $tag[1];
+			$dot_part = isset( $tag[2] ) && $tag[2] !== '' ? $tag[2] : null;
+			$modifier = isset( $tag[3] ) && $tag[3] !== '' ? strtolower( $tag[3] ) : null;
+			$field    = self::get_field( $form, $base_id );
+
+			if ( ! $field ) {
+				// Unknown field — check raw entry value
+				$raw_id = $dot_part ? $base_id . $dot_part : $base_id;
+				if ( rgar( $entry, $raw_id ) !== '' && rgar( $entry, $raw_id ) !== null ) {
+					$all_empty = false;
+					break;
+				}
+				continue;
+			}
+
+			if ( self::field_has_entry_value( $field, $entry, $dot_part, $modifier ) ) {
+				$all_empty = false;
+				break;
+			}
+		}
+
+		if ( $all_empty ) return '';
+
+		// Proceed with normal resolution
+		$found_ids = array_unique( array_column( $tag_matches, 1 ) );
+
+		$repeater_field = null;
+		foreach ( $found_ids as $id ) {
+			$field = self::get_field( $form, $id );
+			if ( $field && self::is_multi_choice( $field ) ) {
+				$repeater_field = $field;
+				break;
+			}
+		}
+
+		if ( ! $repeater_field ) {
+			return self::process_template_tags( $template, $entry, $form );
+		}
+
+		$results = [];
+
+		if ( self::is_checkbox_style( $repeater_field ) ) {
+			foreach ( (array) $repeater_field->inputs as $index => $input ) {
+				if ( rgar( $entry, (string) $input['id'] ) ) {
+					$row = self::process_template_tags( $template, $entry, $form, $repeater_field->id, $index );
+					if ( $row !== '' ) $results[] = $row;
+				}
+			}
+		} else {
+			foreach ( self::normalize_multi_values( rgar( $entry, $repeater_field->id ) ) as $val ) {
+				$row = self::process_template_tags( $template, $entry, $form, $repeater_field->id, trim( $val ) );
+				if ( $row !== '' ) $results[] = $row;
+			}
+		}
+
+		return implode( "\n", $results );
+	}
+
+	/**
+	 * Checks whether a field has a real non-empty value in the entry.
+	 * This is used to decide whether to skip a line entirely.
+	 * It always checks the actual entry data — never the field label or config.
+	 */
+	private static function field_has_entry_value( GF_Field $field, array $entry, ?string $dot_part, ?string $modifier ) : bool {
+
+		// ── Dot sub-field e.g. {36.3} — check that exact key ─────────────────
+		if ( $dot_part !== null ) {
+			$val = rgar( $entry, $field->id . $dot_part );
+			return $val !== '' && $val !== null;
+		}
+
+		// ── Checkbox-style multi-choice — any sub-input checked? ──────────────
+		if ( self::is_checkbox_style( $field ) ) {
+			foreach ( (array) $field->inputs as $input ) {
+				if ( rgar( $entry, (string) $input['id'] ) ) return true;
+			}
+			return false;
+		}
+
+		// ── Product field — check qty (.3) as the filled indicator ───────────
+		// GF never stores entry[36], only entry[36.1], entry[36.2], entry[36.3]
+		if ( $field->type === 'product' ) {
+			$qty = rgar( $entry, $field->id . '.3' );
+			return $qty !== '' && $qty !== null && $qty !== '0';
+		}
+
+		// ── Any field that has sub-inputs but no top-level key ────────────────
+		// (quantity, shipping, option, etc.) — check if ANY sub-input has a value
+		if ( ! empty( $field->inputs ) && is_array( $field->inputs ) ) {
+			// First try the top-level key
+			$top = rgar( $entry, $field->id );
+			if ( $top !== '' && $top !== null ) return true;
+
+			// Fall back to checking sub-inputs
+			foreach ( $field->inputs as $input ) {
+				$val = rgar( $entry, (string) $input['id'] );
+				if ( $val !== '' && $val !== null ) return true;
+			}
+			return false;
+		}
+
+		// ── Named modifier — check the specific sub-input it maps to ──────────
+		if ( $modifier !== null ) {
+			$sub_map = array_merge(
+				self::NAME_SUBFIELDS,
+				self::ADDRESS_SUBFIELDS,
+				self::PRODUCT_SUBFIELDS
+			);
+			if ( isset( $sub_map[ $modifier ] ) ) {
+				$val = rgar( $entry, $field->id . $sub_map[ $modifier ] );
+				return $val !== '' && $val !== null && $val !== '0';
+			}
+		}
+
+		// ── All other fields — check top-level entry key ───────────────────────
+		$val = rgar( $entry, $field->id );
+		if ( is_array( $val ) ) return ! empty( $val );
+		return $val !== '' && $val !== null;
+	}
+	
+    /**
+     * Substitutes every tag in a single template line.
+     *
+     * Supported tag forms:
+     *   {28}          full formatted value
+     *   {28.3}        dot sub-field  → entry[28.3]
+     *   {28:modifier} named modifier (label, value, id, first, last, city, qty, …)
+     */
+    private static function process_template_tags(
+        string $template,
+        array  $entry,
+        array  $form,
+               $loop_id      = null,
+               $loop_context = null
+    ) : string {
+        // Match {digits}, {digits.digits}, {digits:word}
+        return preg_replace_callback(
+            '/\{(\d+)(?:(\.\d+(?:\.\d+)*)|:([\w]+))?\}/',
+            function ( $matches ) use ( $entry, $form, $loop_id, $loop_context ) {
+                $base_id  = $matches[1];                               // always the field ID
+                $dot_part = isset( $matches[2] ) && $matches[2] !== '' ? $matches[2] : null; // e.g. ".3"
+                $modifier = isset( $matches[3] ) && $matches[3] !== '' ? strtolower( $matches[3] ) : null; // e.g. "label"
+                $raw_id   = $dot_part ? $base_id . $dot_part : $base_id; // e.g. "28.3" or "28"
+
+                $field = self::get_field( $form, $base_id );
+
+                // Unknown field — read entry directly or return empty
                 if ( ! $field ) {
                     return (string) ( $entry[ $raw_id ] ?? '' );
                 }
 
-                // Inside a loop — resolve only the current iteration's value
-                if ( $loop_id !== null && (string) $base_id === (string) $loop_id ) {
-                    return self::resolve_single_choice_from_loop( $field, $modifier ?: 'value', $loop_context );
+                // ── Inside a multi-choice loop ─────────────────────────────
+                if ( $loop_id !== null && $base_id === (string) $loop_id ) {
+                    // :label or :value inside a loop refers to the current choice
+                    if ( $modifier === 'label' || $modifier === 'value' || $modifier === null ) {
+                        return self::resolve_single_choice_from_loop(
+                            $field,
+                            $modifier ?? 'value',
+                            $loop_context
+                        );
+                    }
+                    // Any other modifier falls through to normal resolution below
                 }
 
-                // No modifier e.g. {12} — use full field formatter
-                if ( $modifier === '' ) {
-                    return self::format_field( $field, $entry );
+                // ── Dot sub-field e.g. {28.3} ──────────────────────────────
+                if ( $dot_part !== null ) {
+                    return (string) rgar( $entry, $raw_id );
                 }
 
-                // :label or :value modifier
-                return self::resolve_subfield( $raw_id . ':' . $modifier, $entry, $form );
+                // ── Named modifier e.g. {28:label} ────────────────────────
+                if ( $modifier !== null ) {
+                    return self::resolve_named_modifier( $field, $modifier, $entry, $form );
+                }
+
+                // ── Plain tag e.g. {28} ───────────────────────────────────
+                return self::format_field( $field, $entry );
             },
             $template
         );
+    }
+
+    // ── Named Modifier Resolution ─────────────────────────────────────────────
+
+    /**
+     * Central dispatcher for all named modifiers.
+     * Called both from process_template_tags and from resolve_value (standard field mapping).
+     *
+     * Universal modifiers (all field types):
+     *   label   → field admin label
+     *   value   → raw entry value
+     *   id      → field numeric ID
+     *
+     * Choice modifiers (radio, select, checkbox, multiselect, multi_choice):
+     *   label   → selected choice label(s)
+     *   value   → selected choice value(s)
+     *
+     * Name field:   prefix, first, middle, last, suffix
+     * Address field: street, street2, city, state, zip, country
+     * Product field: name, price, qty
+     * Date field:   date, day, month, year
+     * File upload:  url
+     */
+    private static function resolve_named_modifier( GF_Field $field, string $modifier, array $entry, array $form ) : string {
+        // ── Universal modifiers ───────────────────────────────────────────────
+        if ( $modifier === 'id' ) {
+            return (string) $field->id;
+        }
+
+        if ( $modifier === 'label' ) {
+            // Choice fields → selected choice label(s)
+            if ( self::has_choices( $field ) ) {
+                return self::resolve_choice_modifier( $field, $entry, 'label' );
+            }
+            // All others → admin field label
+            return (string) $field->label;
+        }
+
+        if ( $modifier === 'value' ) {
+            // Choice fields → selected choice value(s)
+            if ( self::has_choices( $field ) ) {
+                return self::resolve_choice_modifier( $field, $entry, 'value' );
+            }
+            // All others → raw entry value
+            return (string) rgar( $entry, $field->id );
+        }
+
+        // ── Name field ────────────────────────────────────────────────────────
+        if ( $field->type === 'name' && isset( self::NAME_SUBFIELDS[ $modifier ] ) ) {
+            return (string) rgar( $entry, $field->id . self::NAME_SUBFIELDS[ $modifier ] );
+        }
+
+        // ── Address field ─────────────────────────────────────────────────────
+        if ( $field->type === 'address' && isset( self::ADDRESS_SUBFIELDS[ $modifier ] ) ) {
+            return (string) rgar( $entry, $field->id . self::ADDRESS_SUBFIELDS[ $modifier ] );
+        }
+
+        // ── Product field ─────────────────────────────────────────────────────
+        if ( $field->type === 'product' && isset( self::PRODUCT_SUBFIELDS[ $modifier ] ) ) {
+            $sub = rgar( $entry, $field->id . self::PRODUCT_SUBFIELDS[ $modifier ] );
+            // For product name, fall back to field label when sub-input is empty (singleproduct)
+            if ( $modifier === 'name' && $sub === '' ) {
+                return (string) $field->label;
+            }
+            return (string) $sub;
+        }
+
+        // ── Date field ────────────────────────────────────────────────────────
+        if ( $field->type === 'date' ) {
+            $raw = rgar( $entry, $field->id );
+            $ts  = $raw ? strtotime( $raw ) : 0;
+
+            switch ( $modifier ) {
+                case 'date':  return $ts ? date( 'Y-m-d', $ts ) : $raw;
+                case 'day':   return $ts ? date( 'd', $ts ) : '';
+                case 'month': return $ts ? date( 'm', $ts ) : '';
+                case 'year':  return $ts ? date( 'Y', $ts ) : '';
+            }
+        }
+
+        // ── File upload ───────────────────────────────────────────────────────
+        if ( $field->type === 'fileupload' && $modifier === 'url' ) {
+            $val = rgar( $entry, $field->id );
+            if ( $field->multipleFiles ) {
+                $files = json_decode( $val, true );
+                return is_array( $files ) ? implode( "\n", $files ) : (string) $val;
+            }
+            return (string) $val;
+        }
+
+        // ── Fallback: try to find a matching input label ──────────────────────
+        if ( ! empty( $field->inputs ) ) {
+            foreach ( $field->inputs as $input ) {
+                if ( strtolower( trim( $input['label'] ?? '' ) ) === $modifier ) {
+                    return (string) rgar( $entry, (string) $input['id'] );
+                }
+            }
+        }
+
+        // Unknown modifier — return raw entry value
+        return (string) rgar( $entry, $field->id );
+    }
+
+    /**
+     * Resolve :label or :value for any field that has a choices array.
+     * Handles checkbox-style (sub-inputs), multiselect (JSON/CSV), and single-select.
+     */
+    private static function resolve_choice_modifier( GF_Field $field, array $entry, string $modifier ) : string {
+        $items = [];
+
+        if ( self::is_checkbox_style( $field ) ) {
+            foreach ( (array) $field->inputs as $idx => $input ) {
+                if ( rgar( $entry, (string) $input['id'] ) ) {
+                    $choice  = $field->choices[ $idx ] ?? null;
+                    $items[] = ( $modifier === 'label' )
+                        ? ( $choice['text']  ?? $choice['value'] ?? '' )
+                        : ( $choice['value'] ?? '' );
+                }
+            }
+        } elseif ( self::is_multi_choice( $field ) ) {
+            // multiselect / multi_choice (select style)
+            foreach ( self::normalize_multi_values( rgar( $entry, $field->id ) ) as $v ) {
+                if ( $modifier === 'label' ) {
+                    $label = $v;
+                    foreach ( $field->choices as $c ) {
+                        if ( (string) $c['value'] === $v ) { $label = $c['text']; break; }
+                    }
+                    $items[] = $label;
+                } else {
+                    $items[] = $v;
+                }
+            }
+        } else {
+            // Single-select (radio, select, drop-down)
+            $val = (string) rgar( $entry, $field->id );
+            if ( $val === '' ) return '';
+
+            if ( $modifier === 'label' ) {
+                foreach ( $field->choices as $c ) {
+                    if ( (string) $c['value'] === $val ) return $c['text'] ?? $val;
+                }
+                return $val;
+            }
+            return $val;
+        }
+
+        return implode( ', ', $items );
+    }
+
+    /**
+     * Handles the {field_id:modifier} syntax when used in standard (non-custom) field mapping.
+     * e.g. field_id stored as "26:label" in the feed config.
+     */
+    private static function resolve_modifier( string $field_modifier, array $entry, array $form ) : string {
+        $parts    = explode( ':', $field_modifier, 2 );
+        $raw_id   = $parts[0] ?? '';
+        $modifier = strtolower( trim( $parts[1] ?? 'value' ) );
+        $base_id  = explode( '.', $raw_id )[0];
+
+        $field = self::get_field( $form, $base_id );
+        if ( ! $field ) {
+            return (string) rgar( $entry, $raw_id );
+        }
+
+        return self::resolve_named_modifier( $field, $modifier, $entry, $form );
     }
 
     private static function resolve_single_choice_from_loop( GF_Field $field, string $modifier, $context ) : string {
         $choice = null;
 
         if ( self::is_checkbox_style( $field ) ) {
-            // $context is the numeric index into $field->choices
             $choice = $field->choices[ $context ] ?? null;
         } else {
-            // $context is the selected value string
             foreach ( $field->choices as $c ) {
                 if ( (string) $c['value'] === (string) $context ) {
                     $choice = $c;
@@ -164,60 +544,6 @@ class GFGS_Field_Mapper {
         return ( $modifier === 'label' )
             ? ( $choice['text'] ?? $choice['value'] )
             : $choice['value'];
-    }
-
-    // ── Sub-field Resolution ──────────────────────────────────────────────────
-
-    private static function resolve_subfield( string $subfield, array $entry, array $form ) : string {
-        $parts    = explode( ':', $subfield, 2 );
-        $raw_id   = $parts[0] ?? '';
-        $modifier = strtolower( trim( $parts[1] ?? 'value' ) );
-        $base_id  = explode( '.', $raw_id )[0];
-
-        $field = self::get_field( $form, $base_id );
-        if ( ! $field ) {
-            return (string) rgar( $entry, $raw_id );
-        }
-
-        if ( self::is_multi_choice( $field ) ) {
-            return self::resolve_choice_subfield( $field, $entry, $modifier );
-        }
-
-        $raw_value = rgar( $entry, $raw_id );
-        if ( $modifier === 'label' && ! empty( $field->inputs ) ) {
-            foreach ( $field->inputs as $input ) {
-                if ( (string) $input['id'] === $raw_id ) {
-                    return $input['label'] ?? $raw_value;
-                }
-            }
-        }
-
-        return (string) $raw_value;
-    }
-
-    private static function resolve_choice_subfield( GF_Field $field, array $entry, string $modifier ) : string {
-        $items = [];
-
-        if ( self::is_checkbox_style( $field ) ) {
-            foreach ( (array) $field->inputs as $idx => $input ) {
-                if ( rgar( $entry, (string) $input['id'] ) ) {
-                    $choice  = $field->choices[ $idx ] ?? null;
-                    $items[] = ( $modifier === 'label' )
-                        ? ( $choice['text']  ?? $choice['value'] ?? '' )
-                        : ( $choice['value'] ?? '' );
-                }
-            }
-        } else {
-            foreach ( self::normalize_multi_values( rgar( $entry, $field->id ) ) as $v ) {
-                $label = $v;
-                foreach ( $field->choices as $c ) {
-                    if ( (string) $c['value'] === $v ) { $label = $c['text']; break; }
-                }
-                $items[] = ( $modifier === 'label' ) ? $label : $v;
-            }
-        }
-
-        return implode( ', ', $items );
     }
 
     // ── Meta Fields ───────────────────────────────────────────────────────────
@@ -251,7 +577,6 @@ class GFGS_Field_Mapper {
             }
             return implode( "\n", $checked );
         }
-
         return implode( "\n", self::normalize_multi_values( rgar( $entry, $field->id ) ) );
     }
 
@@ -330,9 +655,9 @@ class GFGS_Field_Mapper {
             $price        = rgar( $entry, $field->id . '.2' );
             $qty          = rgar( $entry, $field->id . '.3' );
         } else {
-            $full_raw    = rgar( $entry, $field->id );
-            $value_parts = explode( '|', $full_raw );
-            $clean_value = $value_parts[0];
+            $full_raw     = rgar( $entry, $field->id );
+            $value_parts  = explode( '|', $full_raw );
+            $clean_value  = $value_parts[0];
             $product_name = RGFormsModel::get_choice_text( $field, $full_raw );
 
             if ( is_array( $field->choices ) ) {
@@ -384,6 +709,13 @@ class GFGS_Field_Mapper {
     private static function is_checkbox_style( GF_Field $field ) : bool {
         return $field->type === 'checkbox' ||
                ( $field->type === 'multi_choice' && $field->inputType === 'checkbox' );
+    }
+
+    /**
+     * True when a field has a choices array (radio, select, checkbox, multiselect, multi_choice).
+     */
+    private static function has_choices( GF_Field $field ) : bool {
+        return ! empty( $field->choices ) && is_array( $field->choices );
     }
 
     /**
