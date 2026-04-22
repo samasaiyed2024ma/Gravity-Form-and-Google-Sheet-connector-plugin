@@ -501,7 +501,7 @@
             });
             return `<select class="gfgs-select gfgs-select-sm gfgs-cond-value">${opts}</select>`;
         }
-        return `<input type="text" class="gfgs-input gfgs-input-sm gfgs-cond-value" value="${esc(value)}" placeholder="Value">`;
+        return `<input type="text" class="gfgs-input gfgs-cond-value" value="${esc(value)}" placeholder="Value">`;
     }
 
     // ── Editor Events ─────────────────────────────────────────────────────────
@@ -865,5 +865,5 @@
             else if (!res.success) console.error('gfgs ajax error', action, res);
         });
     }
-    
+
 })(jQuery);

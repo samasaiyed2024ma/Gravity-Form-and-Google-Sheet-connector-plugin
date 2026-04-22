@@ -181,12 +181,16 @@
 }
 
 .gfgs-cond-value-wrap {
-    flex: 1;
+    flex: 1 !important;
     min-width: 120px;
 }
 
 #gfgs-add-rule {
     margin-top: 10px;
+}
+
+.gfgs-cond-field, .gfgs-cond-operator{
+	flex: 0.5;
 }
 
 /* ── Editor Footer ────────────────────────────────────────────────────────── */
