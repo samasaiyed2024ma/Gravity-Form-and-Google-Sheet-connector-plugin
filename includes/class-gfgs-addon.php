@@ -42,6 +42,7 @@ class GFGS_Addon extends GFFeedAddOn {
         add_action( 'wp_ajax_gfgs_delete_account',     [ $this, 'ajax_delete_account' ] );
         add_action( 'wp_ajax_gfgs_save_feed',          [ $this, 'ajax_save_feed' ] );
         add_action( 'wp_ajax_gfgs_delete_feed',        [ $this, 'ajax_delete_feed' ] );
+        add_action( 'wp_ajax_gfgs_duplicate_feed',     [$this, 'ajax_duplicate_feed']);
         add_action( 'wp_ajax_gfgs_toggle_feed',        [ $this, 'ajax_toggle_feed' ] );
         add_action( 'wp_ajax_gfgs_test_connection',    [ $this, 'ajax_test_connection' ] );
         add_action( 'wp_ajax_gfgs_save_account_creds', [ $this, 'ajax_save_account_creds' ] );
@@ -608,6 +609,49 @@ class GFGS_Addon extends GFFeedAddOn {
         $feed_id = (int) ( $_POST['feed_id'] ?? 0 );
         GFGS_Database::delete_feed( $feed_id );
         wp_send_json_success();
+    }
+
+    public function ajax_duplicate_feed() {
+        $this->verify_ajax();
+
+        $feed_id = (int) ( $_POST['feed_id'] ?? 0 );
+        if ( ! $feed_id ) {
+            wp_send_json_error( [ 'message' => __( 'Invalid feed ID.', 'GFGS' ) ] );
+        }
+
+        $original = GFGS_Database::get_feed( $feed_id );
+        if ( ! $original ) {
+            wp_send_json_error( [ 'message' => __( 'Feed not found.', 'GFGS' ) ] );
+        }
+
+        $data = (array) $original;
+
+        // Remove ID so a new record is inserted
+        unset( $data['id'] );
+
+        // Append "Copy" to the feed name
+        $data['feed_name'] = $data['feed_name'] . ' (Copy)';
+
+        // New feed starts inactive to avoid accidental duplicate sends
+        $data['is_active'] = 0;
+
+        // Re-encode any fields that decode_feed() may have already decoded to arrays
+        foreach ( [ 'field_map', 'conditions', 'date_formats' ] as $key ) {
+            if ( isset( $data[ $key ] ) && is_array( $data[ $key ] ) ) {
+                $data[ $key ] = wp_json_encode( $data[ $key ] );
+            }
+        }
+
+        $new_feed_id = GFGS_Database::save_feed_raw( $data );
+        if ( is_wp_error( $new_feed_id ) ) {
+            wp_send_json_error( [ 'message' => $new_feed_id->get_error_message() ] );
+        }
+
+        $new_feed = GFGS_Database::get_feed( $new_feed_id );
+        wp_send_json_success( [
+            'feed'    => $this->prepare_feed_for_js( $new_feed ),
+            'feed_id' => $new_feed_id,
+        ] );
     }
 
     public function ajax_toggle_feed() {

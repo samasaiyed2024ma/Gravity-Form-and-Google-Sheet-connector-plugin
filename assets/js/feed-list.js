@@ -125,6 +125,7 @@
                     <td><span class="gfgs-event-badge">${esc(eventLabel)}</span></td>
                     <td class="gfgs-actions-cell">
                         <button class="gfgs-btn gfgs-btn-sm gfgs-edit-feed" data-id="${feed.id}">Edit</button>
+                        <button class="gfgs-btn gfgs-btn-sm gfgs-duplicate-feed" data-id="${feed.id}">Duplicate</button>
                         <button class="gfgs-btn gfgs-btn-sm gfgs-btn-danger gfgs-delete-feed" data-id="${feed.id}">Delete</button>
                     </td>
                 </tr>`;
@@ -148,6 +149,18 @@
             const id   = $(this).data('id');
             const feed = state.feeds.find(f => f.id == id);
             if (feed) startEditing(JSON.parse(JSON.stringify(feed)));
+        });
+
+        $app.on('click', '.gfgs-duplicate-feed', function () {
+            const $btn = $(this).prop('disabled', true).text('Duplicating…');
+            const id   = $btn.data('id');
+
+            feedAjax('gfgs_duplicate_feed', { feed_id: id }, res => {
+                const newFeed = res.data.feed;
+                state.feeds.push( newFeed );
+                state.notice = { type: 'success', msg: `"${newFeed.feed_name}" created successfully.` };
+                renderFeedList();
+            });
         });
 
         $app.on('click', '.gfgs-delete-feed', function () {
