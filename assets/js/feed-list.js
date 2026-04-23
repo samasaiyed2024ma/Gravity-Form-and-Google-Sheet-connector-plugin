@@ -103,7 +103,6 @@
                         <th>Feed Name</th>
                         <th>Spreadsheet / Sheet</th>
                         <th>Send On</th>
-                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>`;
@@ -120,14 +119,22 @@
                             data-active="${feed.is_active ? 1 : 0}"
                         >${feed.is_active ? 'Active' : 'Inactive'}</button>
                     </td>
-                    <td><a href="#" class="gfgs-edit-feed gfgs-feed-name-link" data-id="${feed.id}"><strong>${esc(feed.feed_name)}</strong></a></td>
+                    <td>
+                        <div class="feed-name-action-container">
+                            <div class="feed-name">
+                                <a href="#" class="gfgs-edit-feed gfgs-feed-name-link" data-id="${feed.id}"><strong>${esc(feed.feed_name)}</strong></a>
+                            </div>
+                            <div class="feed-actions">
+                                <a class="gfgs-btn gfgs-btn-sm gfgs-edit-feed" data-id="${feed.id}">Edit</a>
+                                <span> | </span>
+                                <a class="gfgs-btn gfgs-btn-sm gfgs-duplicate-feed" data-id="${feed.id}">Duplicate</a>
+                                <span> | </span>
+                                <a class="gfgs-btn gfgs-btn-sm gfgs-btn-danger gfgs-delete-feed" data-id="${feed.id}">Delete</a>
+                            </div>
+                        </div>
+                    </td>
                     <td>${sheetInfo}</td>
                     <td><span class="gfgs-event-badge">${esc(eventLabel)}</span></td>
-                    <td class="gfgs-actions-cell">
-                        <button class="gfgs-btn gfgs-btn-sm gfgs-edit-feed" data-id="${feed.id}">Edit</button>
-                        <button class="gfgs-btn gfgs-btn-sm gfgs-duplicate-feed" data-id="${feed.id}">Duplicate</button>
-                        <button class="gfgs-btn gfgs-btn-sm gfgs-btn-danger gfgs-delete-feed" data-id="${feed.id}">Delete</button>
-                    </td>
                 </tr>`;
             });
             html += '</tbody></table></div>';
