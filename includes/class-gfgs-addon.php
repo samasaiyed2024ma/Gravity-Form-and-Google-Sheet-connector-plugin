@@ -349,6 +349,9 @@ class GFGS_Addon extends GFFeedAddOn {
             ];
         }, (array) $arr['field_map'] );
 
+        // Cast to int so JS receives 0 or 1, not the string "0" which is truthy in JS
+    	$arr['is_active'] = (int) ( $arr['is_active'] ?? 1 );
+
         return $arr;
     }
 
@@ -610,7 +613,7 @@ class GFGS_Addon extends GFFeedAddOn {
     public function ajax_toggle_feed() {
         $this->verify_ajax();
         $feed_id = (int)  ( $_POST['feed_id'] ?? 0 );
-        $active  = (bool) ( $_POST['active']  ?? false );
+        $active  = (int) ( $_POST['active']  ?? 0 );
         GFGS_Database::toggle_feed( $feed_id, $active );
         wp_send_json_success();
     }

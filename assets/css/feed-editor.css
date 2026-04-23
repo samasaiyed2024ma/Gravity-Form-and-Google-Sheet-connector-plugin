@@ -110,7 +110,7 @@
 
 .gfgs-mapper-col-name {
     min-width: 140px;
-    max-width: 180px;
+    width: 170px !important;
     font-size: 13px;
     font-weight: 500;
     color: #1e1e1e;
@@ -138,6 +138,11 @@
     gap: 10px;
     padding-top: 12px;
     margin-top: 4px;
+}
+
+.gfgs-mapper-controls .gfgs-select, 
+.gfgs-mapper-controls textarea{
+	max-width: 30rem !important;
 }
 
 /* ── Conditional Logic ────────────────────────────────────────────────────── */

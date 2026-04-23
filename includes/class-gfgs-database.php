@@ -154,7 +154,7 @@ class GFGS_Database {
         global $wpdb;
         $wpdb->update(
             $wpdb->prefix . self::FEEDS_TABLE,
-            [ 'is_active' => (int) (bool) $active ],
+            [ 'is_active' => (int) $active ],
             [ 'id'        => (int) $id ]
         );
     }
