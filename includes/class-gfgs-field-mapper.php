@@ -25,6 +25,11 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  *   Date:     {28:date} {28:day} {28:month} {28:year}
  *   File:     {28:url}
  *
+ * IMAGE CHOICE MODIFIERS
+ *   {28}              Selected choice label(s)
+ *   {28:img_url}      URL(s) of the selected image(s), one per line.
+ *                     Works with single, multiple, range, and exact number modes.
+ *
  * MULTI-LINE TEMPLATES
  *   Each line is processed independently.
  *   Lines where all referenced fields have empty entry values are skipped.
@@ -65,7 +70,7 @@ class GFGS_Field_Mapper {
 
     // ── Public API ────────────────────────────────────────────────────────────
 
-	/**
+    /**
      * Build the full column→value row for one entry and one feed's field map.
      */
     public static function build_row( array $field_map, array $entry, array $form, array $date_formats = [] ) : array {
@@ -100,7 +105,7 @@ class GFGS_Field_Mapper {
             return self::resolve_meta( (string) $field_id, $entry );
         }
 
-		// Colon modifier in field_id e.g. "26:label"
+        // Colon modifier in field_id e.g. "26:label"
         if ( is_string( $field_id ) && strpos( $field_id, ':' ) !== false ) {
             return self::resolve_modifier( $field_id, $entry, $form );
         }
@@ -117,7 +122,7 @@ class GFGS_Field_Mapper {
         return self::format_field( $field, $entry );
     }
 
-	/**
+    /**
      * Evaluate feed conditional logic against an entry.
      */
     public static function check_conditions( array $conditions, array $entry, array $form ) : bool {
@@ -164,148 +169,151 @@ class GFGS_Field_Mapper {
 
     /**
      * Processes one template line.
-     * If the line references a multi-choice field it loops once per selected choice.
-     * Otherwise it does a single-pass substitution.
+     *
+     * For image_choice fields:
+     *   - Single-select (inputType=radio): one pass, {28} = label, {28:img_url} = url
+     *   - Multi-select  (inputType=checkbox/other): loops once per selected value,
+     *     each iteration resolves {28} to that choice's label and {28:img_url} to its url.
+     *
+     * For other multi-choice fields (checkbox, multiselect, multi_choice):
+     *   loops once per selected value as before.
+     *
+     * Otherwise: single-pass substitution.
      */
-	private static function process_single_line( string $template, array $entry, array $form ) : string {
-		// Collect all tags in this line
-		preg_match_all( '/\{(\d+)(?:(\.\d+(?:\.\d+)*)|:([\w]+))?\}/', $template, $tag_matches, PREG_SET_ORDER );
+    private static function process_single_line( string $template, array $entry, array $form ) : string {
+        // Collect all tags in this line
+        preg_match_all( '/\{(\d+)(?:(\.\d+(?:\.\d+)*)|:([\w]+))?\}/', $template, $tag_matches, PREG_SET_ORDER );
 
-		if ( empty( $tag_matches ) ) {
-			return $template; // Plain text line, no tags — always output
-		}
+        if ( empty( $tag_matches ) ) {
+            return $template; // Plain text line — always output
+        }
 
-	    // Check if every field referenced in this line has an empty entry value.
-		// If ALL fields are empty, skip the line entirely.
-		$all_empty = true;
-		foreach ( $tag_matches as $tag ) {
-			$base_id  = $tag[1];
-			$dot_part = isset( $tag[2] ) && $tag[2] !== '' ? $tag[2] : null;
-			$modifier = isset( $tag[3] ) && $tag[3] !== '' ? strtolower( $tag[3] ) : null;
-			$field    = self::get_field( $form, $base_id );
+        // If ALL referenced fields are empty, skip the line entirely.
+        $all_empty = true;
+        foreach ( $tag_matches as $tag ) {
+            $base_id  = $tag[1];
+            $dot_part = isset( $tag[2] ) && $tag[2] !== '' ? $tag[2] : null;
+            $modifier = isset( $tag[3] ) && $tag[3] !== '' ? strtolower( $tag[3] ) : null;
+            $field    = self::get_field( $form, $base_id );
 
-			if ( ! $field ) {
-				// Unknown field — check raw entry value
-				$raw_id = $dot_part ? $base_id . $dot_part : $base_id;
-				if ( rgar( $entry, $raw_id ) !== '' && rgar( $entry, $raw_id ) !== null ) {
-					$all_empty = false;
-					break;
-				}
-				continue;
-			}
+            if ( ! $field ) {
+                $raw_id = $dot_part ? $base_id . $dot_part : $base_id;
+                if ( rgar( $entry, $raw_id ) !== '' && rgar( $entry, $raw_id ) !== null ) {
+                    $all_empty = false;
+                    break;
+                }
+                continue;
+            }
 
-			if ( self::field_has_entry_value( $field, $entry, $dot_part, $modifier ) ) {
-				$all_empty = false;
-				break;
-			}
-		}
+            if ( self::field_has_entry_value( $field, $entry, $dot_part, $modifier ) ) {
+                $all_empty = false;
+                break;
+            }
+        }
 
-		if ( $all_empty ) return '';
+        if ( $all_empty ) return '';
 
-		// Proceed with normal resolution
-		$found_ids = array_unique( array_column( $tag_matches, 1 ) );
+        // Find a repeater field in this line
+        $found_ids = array_unique( array_column( $tag_matches, 1 ) );
 
-		$repeater_field = null;
-		foreach ( $found_ids as $id ) {
-			$field = self::get_field( $form, $id );
-			if ( $field && self::is_multi_choice( $field ) ) {
-				$repeater_field = $field;
-				break;
-			}
-		}
+        $repeater_field = null;
+        foreach ( $found_ids as $id ) {
+            $field = self::get_field( $form, $id );
+            if ( $field && self::is_multi_choice( $field ) ) {
+                $repeater_field = $field;
+                break;
+            }
+        }
 
-		if ( ! $repeater_field ) {
-			return self::process_template_tags( $template, $entry, $form );
-		}
+        if ( ! $repeater_field ) {
+            return self::process_template_tags( $template, $entry, $form );
+        }
 
-		$results = [];
+        $results = [];
 
-		if ( self::is_checkbox_style( $repeater_field ) ) {
-			foreach ( (array) $repeater_field->inputs as $index => $input ) {
-				if ( rgar( $entry, (string) $input['id'] ) ) {
-					$row = self::process_template_tags( $template, $entry, $form, $repeater_field->id, $index );
-					if ( $row !== '' ) $results[] = $row;
-				}
-			}
-		} else {
-			foreach ( self::normalize_multi_values( rgar( $entry, $repeater_field->id ) ) as $val ) {
-				$row = self::process_template_tags( $template, $entry, $form, $repeater_field->id, trim( $val ) );
-				if ( $row !== '' ) $results[] = $row;
-			}
-		}
+        if ( self::is_checkbox_style( $repeater_field ) ) {
+            // Checkbox-style: values stored in sub-inputs
+            foreach ( (array) $repeater_field->inputs as $index => $input ) {
+                if ( rgar( $entry, (string) $input['id'] ) ) {
+                    $row = self::process_template_tags( $template, $entry, $form, $repeater_field->id, $index );
+                    if ( $row !== '' ) $results[] = $row;
+                }
+            }
+        } else {
+            // CSV/JSON-style: values stored as a list in entry[ field_id ]
+            // For image_choice single-select (radio), normalize_multi_values returns []
+            // so we treat the raw value as one item.
+            $raw    = rgar( $entry, $repeater_field->id );
+            $values = self::normalize_multi_values( $raw );
+            if ( empty( $values ) && $raw !== '' && $raw !== null ) {
+                $values = [ trim( (string) $raw ) ];
+            }
+            foreach ( $values as $val ) {
+                $row = self::process_template_tags( $template, $entry, $form, $repeater_field->id, trim( $val ) );
+                if ( $row !== '' ) $results[] = $row;
+            }
+        }
 
-		return implode( "\n", $results );
-	}
+        return implode( "\n", $results );
+    }
 
-	/**
-	 * Checks whether a field has a real non-empty value in the entry.
-	 * This is used to decide whether to skip a line entirely.
-	 * It always checks the actual entry data — never the field label or config.
-	 */
-	private static function field_has_entry_value( GF_Field $field, array $entry, ?string $dot_part, ?string $modifier ) : bool {
+    /**
+     * Checks whether a field has a real non-empty value in the entry.
+     */
+    private static function field_has_entry_value( GF_Field $field, array $entry, ?string $dot_part, ?string $modifier ) : bool {
 
-		// ── Dot sub-field e.g. {36.3} — check that exact key ─────────────────
-		if ( $dot_part !== null ) {
-			$val = rgar( $entry, $field->id . $dot_part );
-			return $val !== '' && $val !== null;
-		}
+        // ── Dot sub-field e.g. {36.3} — check that exact key ─────────────────
+        if ( $dot_part !== null ) {
+            $val = rgar( $entry, $field->id . $dot_part );
+            return $val !== '' && $val !== null;
+        }
 
-		// ── Checkbox-style multi-choice — any sub-input checked? ──────────────
-		if ( self::is_checkbox_style( $field ) ) {
-			foreach ( (array) $field->inputs as $input ) {
-				if ( rgar( $entry, (string) $input['id'] ) ) return true;
-			}
-			return false;
-		}
+        if ( self::is_checkbox_style( $field ) ) {
+            foreach ( (array) $field->inputs as $input ) {
+                if ( rgar( $entry, (string) $input['id'] ) ) return true;
+            }
+            return false;
+        }
 
-		// ── Product field — check qty (.3) as the filled indicator ───────────
-		// GF never stores entry[36], only entry[36.1], entry[36.2], entry[36.3]
-		if ( $field->type === 'product' ) {
-			$qty = rgar( $entry, $field->id . '.3' );
-			return $qty !== '' && $qty !== null && $qty !== '0';
-		}
+        if ( $field->type === 'product' ) {
+            $qty = rgar( $entry, $field->id . '.3' );
+            return $qty !== '' && $qty !== null && $qty !== '0';
+        }
 
-		// ── Any field that has sub-inputs but no top-level key ────────────────
-		// (quantity, shipping, option, etc.) — check if ANY sub-input has a value
-		if ( ! empty( $field->inputs ) && is_array( $field->inputs ) ) {
-			// First try the top-level key
-			$top = rgar( $entry, $field->id );
-			if ( $top !== '' && $top !== null ) return true;
+        if ( ! empty( $field->inputs ) && is_array( $field->inputs ) ) {
+            $top = rgar( $entry, $field->id );
+            if ( $top !== '' && $top !== null ) return true;
+            foreach ( $field->inputs as $input ) {
+                $val = rgar( $entry, (string) $input['id'] );
+                if ( $val !== '' && $val !== null ) return true;
+            }
+            return false;
+        }
 
-			// Fall back to checking sub-inputs
-			foreach ( $field->inputs as $input ) {
-				$val = rgar( $entry, (string) $input['id'] );
-				if ( $val !== '' && $val !== null ) return true;
-			}
-			return false;
-		}
+        if ( $modifier !== null ) {
+            $sub_map = array_merge(
+                self::NAME_SUBFIELDS,
+                self::ADDRESS_SUBFIELDS,
+                self::PRODUCT_SUBFIELDS
+            );
+            if ( isset( $sub_map[ $modifier ] ) ) {
+                $val = rgar( $entry, $field->id . $sub_map[ $modifier ] );
+                return $val !== '' && $val !== null && $val !== '0';
+            }
+        }
 
-		// ── Named modifier — check the specific sub-input it maps to ──────────
-		if ( $modifier !== null ) {
-			$sub_map = array_merge(
-				self::NAME_SUBFIELDS,
-				self::ADDRESS_SUBFIELDS,
-				self::PRODUCT_SUBFIELDS
-			);
-			if ( isset( $sub_map[ $modifier ] ) ) {
-				$val = rgar( $entry, $field->id . $sub_map[ $modifier ] );
-				return $val !== '' && $val !== null && $val !== '0';
-			}
-		}
+        $val = rgar( $entry, $field->id );
+        if ( is_array( $val ) ) return ! empty( $val );
+        return $val !== '' && $val !== null;
+    }
 
-		// ── All other fields — check top-level entry key ───────────────────────
-		$val = rgar( $entry, $field->id );
-		if ( is_array( $val ) ) return ! empty( $val );
-		return $val !== '' && $val !== null;
-	}
-	
     /**
      * Substitutes every tag in a single template line.
      *
-     * Supported tag forms:
-     *   {28}          full formatted value
-     *   {28.3}        dot sub-field  → entry[28.3]
-     *   {28:modifier} named modifier (label, value, id, first, last, city, qty, …)
+     * When called inside a loop ($loop_id is set), image_choice tags are resolved
+     * against $loop_context (the current selected choice value) so that:
+     *   {28}         → that choice's label text
+     *   {28:img_url} → that choice's file_url
      */
     private static function process_template_tags(
         string $template,
@@ -318,21 +326,26 @@ class GFGS_Field_Mapper {
         return preg_replace_callback(
             '/\{(\d+)(?:(\.\d+(?:\.\d+)*)|:([\w]+))?\}/',
             function ( $matches ) use ( $entry, $form, $loop_id, $loop_context ) {
-                $base_id  = $matches[1];                               // always the field ID
-                $dot_part = isset( $matches[2] ) && $matches[2] !== '' ? $matches[2] : null; // e.g. ".3"
-                $modifier = isset( $matches[3] ) && $matches[3] !== '' ? strtolower( $matches[3] ) : null; // e.g. "label"
-                $raw_id   = $dot_part ? $base_id . $dot_part : $base_id; // e.g. "28.3" or "28"
+                $base_id  = $matches[1];
+                $dot_part = isset( $matches[2] ) && $matches[2] !== '' ? $matches[2] : null;
+                $modifier = isset( $matches[3] ) && $matches[3] !== '' ? strtolower( $matches[3] ) : null;
+                $raw_id   = $dot_part ? $base_id . $dot_part : $base_id;
 
                 $field = self::get_field( $form, $base_id );
 
-                // Unknown field — read entry directly or return empty
                 if ( ! $field ) {
                     return (string) ( $entry[ $raw_id ] ?? '' );
                 }
 
-                // ── Inside a multi-choice loop ─────────────────────────────
+                // ── Inside a loop for this field ───────────────────────────
                 if ( $loop_id !== null && $base_id === (string) $loop_id ) {
-                    // :label or :value inside a loop refers to the current choice
+
+                    // image_choice — $loop_context is the stored choice VALUE
+                    if ( $field->type === 'image_choice' ) {
+                        return self::resolve_image_choice_in_loop( $field, $modifier, $loop_context );
+                    }
+
+                    // All other multi-choice fields
                     if ( $modifier === 'label' || $modifier === 'value' || $modifier === null ) {
                         return self::resolve_single_choice_from_loop(
                             $field,
@@ -340,7 +353,7 @@ class GFGS_Field_Mapper {
                             $loop_context
                         );
                     }
-                    // Any other modifier falls through to normal resolution below
+                    // Any other modifier falls through to normal resolution
                 }
 
                 // ── Dot sub-field e.g. {28.3} ──────────────────────────────
@@ -360,26 +373,50 @@ class GFGS_Field_Mapper {
         );
     }
 
+    /**
+     * Resolves a single image_choice tag inside a loop iteration.
+     *
+     * For checkbox-style image_choice, $loop_context is the sub-input INDEX (integer).
+     * For radio/other,                 $loop_context is the stored VALUE (string).
+     *
+     *   {28}         → choice label text  (e.g. "Snow Mountain Photo")
+     *   {28:label}   → same as above
+     *   {28:value}   → choice value       (e.g. "mountains")
+     *   {28:img_url} → choice file_url    (e.g. "https://…/Mountain.jpeg")
+     */
+    private static function resolve_image_choice_in_loop( GF_Field $field, ?string $modifier, $loop_context ) : string {
+        // checkbox-style: loop_context is the sub-input index → look up by index
+        if ( self::is_checkbox_style( $field ) ) {
+            $matched_choice = $field->choices[ $loop_context ] ?? null;
+        } else {
+            // radio/other: loop_context is the stored value → match by value or text
+            $stored_val     = (string) $loop_context;
+            $matched_choice = null;
+            foreach ( (array) $field->choices as $choice ) {
+                if ( (string) ( $choice['value'] ?? '' ) === $stored_val ||
+                     (string) ( $choice['text']  ?? '' ) === $stored_val ) {
+                    $matched_choice = $choice;
+                    break;
+                }
+            }
+        }
+
+        if ( $modifier === 'img_url' ) {
+            return $matched_choice ? (string) ( $matched_choice['file_url'] ?? '' ) : '';
+        }
+
+        if ( $modifier === 'value' ) {
+            return $matched_choice ? (string) ( $matched_choice['value'] ?? '' ) : '';
+        }
+
+        // null (plain {28}) or 'label' → return the display label
+        return $matched_choice ? (string) ( $matched_choice['text'] ?? '' ) : '';
+    }
+
     // ── Named Modifier Resolution ─────────────────────────────────────────────
 
     /**
      * Central dispatcher for all named modifiers.
-     * Called both from process_template_tags and from resolve_value (standard field mapping).
-     *
-     * Universal modifiers (all field types):
-     *   label   → field admin label
-     *   value   → raw entry value
-     *   id      → field numeric ID
-     *
-     * Choice modifiers (radio, select, checkbox, multiselect, multi_choice):
-     *   label   → selected choice label(s)
-     *   value   → selected choice value(s)
-     *
-     * Name field:   prefix, first, middle, last, suffix
-     * Address field: street, street2, city, state, zip, country
-     * Product field: name, price, qty
-     * Date field:   date, day, month, year
-     * File upload:  url
      */
     private static function resolve_named_modifier( GF_Field $field, string $modifier, array $entry, array $form ) : string {
         // ── Universal modifiers ───────────────────────────────────────────────
@@ -388,21 +425,23 @@ class GFGS_Field_Mapper {
         }
 
         if ( $modifier === 'label' ) {
-            // Choice fields → selected choice label(s)
-            if ( self::has_choices( $field ) ) {
+        // Choice fields → selected choice label(s)
+        if ( self::has_choices( $field ) ) {
                 return self::resolve_choice_modifier( $field, $entry, 'label' );
             }
-            // All others → admin field label
             return (string) $field->label;
         }
 
         if ( $modifier === 'value' ) {
-            // Choice fields → selected choice value(s)
             if ( self::has_choices( $field ) ) {
                 return self::resolve_choice_modifier( $field, $entry, 'value' );
             }
-            // All others → raw entry value
             return (string) rgar( $entry, $field->id );
+        }
+
+        // ── Image Choice — {field_id:img_url} ─────────────────────────────────
+        if ( $modifier === 'img_url' && $field->type === 'image_choice' ) {
+            return self::resolve_image_choice_img_url( $field, $entry );
         }
 
         // ── Name field ────────────────────────────────────────────────────────
@@ -418,7 +457,6 @@ class GFGS_Field_Mapper {
         // ── Product field ─────────────────────────────────────────────────────
         if ( $field->type === 'product' && isset( self::PRODUCT_SUBFIELDS[ $modifier ] ) ) {
             $sub = rgar( $entry, $field->id . self::PRODUCT_SUBFIELDS[ $modifier ] );
-            // For product name, fall back to field label when sub-input is empty (singleproduct)
             if ( $modifier === 'name' && $sub === '' ) {
                 return (string) $field->label;
             }
@@ -429,7 +467,6 @@ class GFGS_Field_Mapper {
         if ( $field->type === 'date' ) {
             $raw = rgar( $entry, $field->id );
             $ts  = $raw ? strtotime( $raw ) : 0;
-
             switch ( $modifier ) {
                 case 'date':  return $ts ? date( 'Y-m-d', $ts ) : $raw;
                 case 'day':   return $ts ? date( 'd', $ts ) : '';
@@ -457,13 +494,78 @@ class GFGS_Field_Mapper {
             }
         }
 
-        // Unknown modifier — return raw entry value
         return (string) rgar( $entry, $field->id );
+    }
+
+    // ── Image Choice Resolver ─────────────────────────────────────────────────
+
+    /**
+     * Resolves {field_id:img_url} outside of a loop context.
+     *
+     * Reads the stored entry value(s), matches each against the choices array
+     * by value (primary) or text (fallback), and returns the file_url for each.
+     *
+     * Single-select  → one URL
+     * Multi-select   → one URL per line
+     *
+     * Confirmed field structure (from var_dump):
+     *   $choice['value']         e.g. "mountains"   ← stored in entry
+     *   $choice['text']          e.g. "Snow Mountain Photo"
+     *   $choice['file_url']      e.g. "https://…/Mountain.jpeg"  ← what we return
+     *   $choice['attachment_id'] e.g. 11428
+     */
+    private static function resolve_image_choice_img_url( GF_Field $field, array $entry ) : string {
+        if ( ! is_array( $field->choices ) || empty( $field->choices ) ) {
+            return '';
+        }
+
+        // ── Checkbox-style: selections stored in sub-inputs (30.1, 30.2 …) ──
+        // Each sub-input holds the selected value or empty string.
+        if ( self::is_checkbox_style( $field ) ) {
+            $urls = [];
+            foreach ( (array) $field->inputs as $index => $input ) {
+                $val = rgar( $entry, (string) $input['id'] );
+                if ( $val === '' || $val === null ) continue;
+                $choice = $field->choices[ $index ] ?? null;
+                if ( $choice && isset( $choice['file_url'] ) && $choice['file_url'] !== '' ) {
+                    $urls[] = (string) $choice['file_url'];
+                }
+            }
+            return implode( "\n", $urls );
+        }
+
+        // ── Radio/other: single value stored in entry[ field_id ] ────────────
+        $raw = rgar( $entry, $field->id );
+        if ( $raw === '' || $raw === null ) return '';
+
+        // Build value → file_url lookup (text as fallback key)
+        $url_lookup = [];
+        foreach ( $field->choices as $choice ) {
+            $file_url = (string) ( $choice['file_url'] ?? '' );
+            if ( $file_url === '' ) continue;
+            $val  = (string) ( $choice['value'] ?? '' );
+            $text = (string) ( $choice['text']  ?? '' );
+            if ( $val  !== '' ) $url_lookup[ $val  ] = $file_url;
+            if ( $text !== '' && ! isset( $url_lookup[ $text ] ) ) $url_lookup[ $text ] = $file_url;
+        }
+
+        $selected = self::normalize_multi_values( $raw );
+        if ( empty( $selected ) ) {
+            $selected = [ trim( (string) $raw ) ];
+        }
+
+        $urls = [];
+        foreach ( $selected as $val ) {
+            if ( isset( $url_lookup[ $val ] ) ) {
+                $urls[] = $url_lookup[ $val ];
+            }
+        }
+
+        return implode( "\n", $urls );
     }
 
     /**
      * Resolve :label or :value for any field that has a choices array.
-     * Handles checkbox-style (sub-inputs), multiselect (JSON/CSV), and single-select.
      */
     private static function resolve_choice_modifier( GF_Field $field, array $entry, string $modifier ) : string {
         $items = [];
@@ -478,7 +580,6 @@ class GFGS_Field_Mapper {
                 }
             }
         } elseif ( self::is_multi_choice( $field ) ) {
-            // multiselect / multi_choice (select style)
             foreach ( self::normalize_multi_values( rgar( $entry, $field->id ) ) as $v ) {
                 if ( $modifier === 'label' ) {
                     $label = $v;
@@ -491,7 +592,7 @@ class GFGS_Field_Mapper {
                 }
             }
         } else {
-            // Single-select (radio, select, drop-down)
+            // Single-select (radio, select, drop-down, image_choice radio)
             $val = (string) rgar( $entry, $field->id );
             if ( $val === '' ) return '';
 
@@ -508,8 +609,7 @@ class GFGS_Field_Mapper {
     }
 
     /**
-     * Handles the {field_id:modifier} syntax when used in standard (non-custom) field mapping.
-     * e.g. field_id stored as "26:label" in the feed config.
+     * Handles the {field_id:modifier} syntax in standard (non-custom) field mapping.
      */
     private static function resolve_modifier( string $field_modifier, array $entry, array $form ) : string {
         $parts    = explode( ':', $field_modifier, 2 );
@@ -561,8 +661,47 @@ class GFGS_Field_Mapper {
         if ( method_exists( __CLASS__, $method ) ) {
             return self::$method( $field, $entry );
         }
-        // Full $entry required as third param since GF 2.9.29
         return GFCommon::get_lead_field_display( $field, rgar( $entry, $field->id ), $entry, false, 'text' );
+    }
+
+    /**
+     * Plain {field_id} output for image_choice.
+     * Resolves stored value(s) to display label(s).
+     * Single-select → one label; multi-select → one label per line.
+     */
+    private static function format_image_choice( GF_Field $field, array $entry ) : string {
+        // ── Checkbox-style: read checked sub-inputs ───────────────────────────
+        if ( self::is_checkbox_style( $field ) ) {
+            $labels = [];
+            foreach ( (array) $field->inputs as $index => $input ) {
+                $val = rgar( $entry, (string) $input['id'] );
+                if ( $val === '' || $val === null ) continue;
+                $choice   = $field->choices[ $index ] ?? null;
+                $labels[] = $choice ? (string) ( $choice['text'] ?? $choice['value'] ?? $val ) : (string) $val;
+            }
+            return implode( "\n", $labels );
+        }
+
+        // ── Radio/other: resolve stored value to label ────────────────────────
+        $raw = rgar( $entry, $field->id );
+        if ( $raw === '' || $raw === null ) return '';
+
+        $resolve_label = function( string $stored ) use ( $field ) : string {
+            foreach ( (array) $field->choices as $choice ) {
+                if ( (string) ( $choice['value'] ?? '' ) === $stored ||
+                     (string) ( $choice['text']  ?? '' ) === $stored ) {
+                    return (string) ( $choice['text'] ?? $stored );
+                }
+            }
+            return $stored;
+        };
+
+        $values = self::normalize_multi_values( $raw );
+        if ( ! empty( $values ) ) {
+            return implode( "\n", array_map( $resolve_label, $values ) );
+        }
+
+        return $resolve_label( trim( (string) $raw ) );
     }
 
     private static function format_multi_choice( GF_Field $field, array $entry ) : string {
@@ -697,22 +836,30 @@ class GFGS_Field_Mapper {
 
     /**
      * True for any field type that holds multiple selected values.
+     * image_choice is multi only when inputType is not 'radio'.
      */
     private static function is_multi_choice( GF_Field $field ) : bool {
-        return in_array( $field->type, [ 'checkbox', 'multiselect', 'multi_choice' ], true );
+        if ( in_array( $field->type, [ 'checkbox', 'multiselect', 'multi_choice' ], true ) ) {
+            return true;
+        }
+        if ( $field->type === 'image_choice' ) {
+            return strtolower( (string) ( $field->inputType ?? 'radio' ) ) !== 'radio';
+        }
+        return false;
     }
 
     /**
-     * True when selected values are stored across sub-inputs (26.1, 26.2 …)
-     * rather than as a single JSON/CSV value on the field ID itself.
+     * True when values are stored across sub-inputs (26.1, 26.2 …).
+     * image_choice with inputType=checkbox stores selections this way too.
      */
     private static function is_checkbox_style( GF_Field $field ) : bool {
         return $field->type === 'checkbox' ||
-               ( $field->type === 'multi_choice' && $field->inputType === 'checkbox' );
+               ( $field->type === 'multi_choice'   && $field->inputType === 'checkbox' ) ||
+               ( $field->type === 'image_choice'   && $field->inputType === 'checkbox' );
     }
 
     /**
-     * True when a field has a choices array (radio, select, checkbox, multiselect, multi_choice).
+     * True when a field has a choices array.
      */
     private static function has_choices( GF_Field $field ) : bool {
         return ! empty( $field->choices ) && is_array( $field->choices );
