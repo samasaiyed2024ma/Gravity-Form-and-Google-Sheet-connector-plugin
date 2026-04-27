@@ -14,7 +14,7 @@
 
 #gfgs-plugin-details {
     padding: 0 !important;
-    display: block !important;
+    display: none;
     height: 100%;
     width: 100%;
 }
