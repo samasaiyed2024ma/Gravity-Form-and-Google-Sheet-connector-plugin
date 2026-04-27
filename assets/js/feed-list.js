@@ -178,11 +178,11 @@
 								'<a href="#" class="gfgs-edit-feed gfgs-feed-name-link" data-id="' + feed.id + '"><strong>' + esc( feed.feed_name ) + '</strong></a>' +
 							'</div>' +
 							'<div class="feed-actions">' +
-								'<a class="gfgs-btn gfgs-edit-feed" data-id="' + feed.id + '">Edit</a>' +
+								'<a class="gfgs-edit-feed" data-id="' + feed.id + '">Edit</a>' +
 								' <span>|</span> ' +
-								'<a class="gfgs-btn gfgs-duplicate-feed" data-id="' + feed.id + '">Duplicate</a>' +
+								'<a class="gfgs-duplicate-feed" data-id="' + feed.id + '">Duplicate</a>' +
 								' <span>|</span> ' +
-								'<a class="gfgs-btn gfgs-delete-feed" data-id="' + feed.id + '">Delete</a>' +
+								'<a class="gfgs-delete-feed" data-id="' + feed.id + '">Delete</a>' +
 							'</div>' +
 						'</div>' +
 					'</td>' +
