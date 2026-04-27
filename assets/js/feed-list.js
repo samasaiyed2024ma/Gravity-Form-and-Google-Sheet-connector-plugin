@@ -392,13 +392,6 @@
 						'</div>' +
 					'</div>' +
 					'<div id="gfgs-field-mapper">' + fieldMapHtml + '</div>' +
-					'<div id="gfgs-add-field-row" class="gfgs-add-field-row"' + ( state.headers.length ? '' : ' style="display:none"' ) + '>' +
-						'<select id="gfgs-new-column-select" class="gfgs-select gfgs-select-sm">' +
-							'<option value="">— Add Column —</option>' +
-							renderUnmappedColumnOptions( feed.field_map, state.headers ) +
-						'</select>' +
-						'<button class="gfgs-btn gfgs-btn-outline gfgs-btn-sm" id="gfgs-add-mapping">+ Add Field</button>' +
-					'</div>' +
 				'</div>' +
 
 				'<!-- Conditional Logic -->' +
@@ -1097,13 +1090,6 @@
 					} );
 
 					refreshFieldMapper();
-
-					// Show the "Add Column" row now that headers are loaded.
-					$( '#gfgs-add-field-row' ).show();
-					$( '#gfgs-new-column-select' ).html(
-						'<option value="">— Add Column —</option>' +
-						renderUnmappedColumnOptions( feed.field_map, state.headers )
-					);
 
 					if ( callback ) { callback(); }
 				} else {
