@@ -254,6 +254,7 @@ class GFGS_Addon extends GFFeedAddOn {
 			'gfgs_toggle_feed'        => 'ajax_toggle_feed',
 			'gfgs_test_connection'    => 'ajax_test_connection',
 			'gfgs_save_account_creds' => 'ajax_save_account_creds',
+			'gfgs_update_account'     => 'ajax_update_account',
 			// Back-compat alias — same handler as save_account_creds.
 			'gfgs_connect_account'    => 'ajax_save_account_creds',
 		);
@@ -316,6 +317,19 @@ class GFGS_Addon extends GFFeedAddOn {
 		$error_msg     = isset( $_GET['gfgs_error'] ) ? urldecode( sanitize_text_field( wp_unslash( $_GET['gfgs_error'] ) ) ) : '';
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
+		// Load the pending account outside the view check so it is always
+		// available for wp_localize_script (isAuthorized, pendingId).
+		$pending_account = $pending_id ? GFGS_Database::get_account( $pending_id ) : null;
+		$is_authorized   = $pending_account && ! empty( $pending_account->refresh_token );
+
+		// Extract client credentials from the stored access_token JSON blob.
+		// After OAuth completes, handle_oauth_callback() stores client_id and
+		// client_secret inside the access_token field alongside the real token.
+		$token_data    = $pending_account ? json_decode( $pending_account->access_token, true ) : array();
+		$token_data    = is_array( $token_data ) ? $token_data : array();
+		$client_id     = isset( $token_data['client_id'] )     ? $token_data['client_id']     : '';
+		$client_secret = isset( $token_data['client_secret'] ) ? $token_data['client_secret'] : '';
+
 		wp_localize_script(
 			'gfgs-admin',
 			'gfgsSettings',
@@ -327,15 +341,14 @@ class GFGS_Addon extends GFFeedAddOn {
 				'addAccountUrl' => $add_account_url,
 				'connectedMsg'  => $connected_msg,
 				'errorMsg'      => $error_msg,
+				// Passed so JS always has the account ID and auth state,
+				// regardless of whether the template renders data-account-id.
+				'pendingId'     => $pending_id,
+				'isAuthorized'  => $is_authorized ? 1 : 0,
 			)
 		);
 
 		if ( 'add_account' === $view ) {
-			$pending_account = $pending_id ? GFGS_Database::get_account( $pending_id ) : null;
-			$token_data      = $pending_account ? json_decode( $pending_account->access_token, true ) : array();
-			$client_id       = isset( $token_data['client_id'] ) ? $token_data['client_id'] : '';
-			$client_secret   = isset( $token_data['client_secret'] ) ? $token_data['client_secret'] : '';
-
 			$this->render_template(
 				'settings/add-account',
 				array(
@@ -428,7 +441,7 @@ class GFGS_Addon extends GFFeedAddOn {
 		}
 
 		$creds         = json_decode( $pending->access_token, true );
-		$client_id     = isset( $creds['client_id'] ) ? $creds['client_id'] : '';
+		$client_id     = isset( $creds['client_id'] )     ? $creds['client_id']     : '';
 		$client_secret = isset( $creds['client_secret'] ) ? $creds['client_secret'] : '';
 
 		$tokens = $this->api->exchange_code( $code, $client_id, $client_secret, $redirect_uri );
@@ -447,6 +460,8 @@ class GFGS_Addon extends GFFeedAddOn {
 			$email = isset( $user_info['email'] ) ? $user_info['email'] : 'unknown';
 		}
 
+		// Store real access token AND preserve client_id/client_secret in the
+		// same JSON blob so plugin_settings_page() can repopulate the edit form.
 		GFGS_Database::save_account(
 			array(
 				'id'            => $pending_id,
@@ -748,29 +763,30 @@ class GFGS_Addon extends GFFeedAddOn {
 	// ── AJAX handlers: accounts ───────────────────────────────────────────────
 
 	/**
-	 * AJAX: Save OAuth client credentials and return the pending account ID
-	 * and the Google authorisation URL.
+	 * AJAX: Save OAuth client credentials for a NEW account and return the
+	 * Google authorisation URL to redirect the user to.
 	 *
-	 * This does NOT complete the OAuth flow; the JS redirects the user to
-	 * Google's consent screen using the returned auth_url.
+	 * This handler is exclusively for the new-account / incomplete-OAuth flow.
+	 * It does NOT update an existing connected account — use ajax_update_account()
+	 * for that.
 	 *
 	 * @return void
 	 */
 	public function ajax_save_account_creds() {
 		$this->verify_ajax();
 
-		// Nonce verified above via verify_ajax() / check_ajax_referer().
 		// phpcs:disable WordPress.Security.NonceVerification.Missing
-		$account_name  = isset( $_POST['account_name'] ) ? sanitize_text_field( wp_unslash( $_POST['account_name'] ) ) : '';
-		$client_id     = isset( $_POST['client_id'] ) ? sanitize_text_field( wp_unslash( $_POST['client_id'] ) ) : '';
+		$account_name  = isset( $_POST['account_name'] )  ? sanitize_text_field( wp_unslash( $_POST['account_name'] ) )  : '';
+		$client_id     = isset( $_POST['client_id'] )     ? sanitize_text_field( wp_unslash( $_POST['client_id'] ) )     : '';
 		$client_secret = isset( $_POST['client_secret'] ) ? sanitize_text_field( wp_unslash( $_POST['client_secret'] ) ) : '';
-		$existing_id   = isset( $_POST['account_id'] ) ? absint( $_POST['account_id'] ) : 0;
+		$existing_id   = isset( $_POST['account_id'] )    ? absint( $_POST['account_id'] )                               : 0;
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		if ( ! $client_id || ! $client_secret ) {
 			wp_send_json_error( array( 'message' => __( 'Client ID and Client Secret are required.', 'spreadsheet-sync-for-gravity-forms' ) ) );
 		}
 
+		// Save / update the pending account row (stores credentials before OAuth).
 		$pending_id = GFGS_Database::save_account(
 			array(
 				'id'            => $existing_id ? $existing_id : null,
@@ -798,18 +814,79 @@ class GFGS_Addon extends GFFeedAddOn {
 	}
 
 	/**
+	 * AJAX: Update an existing connected account's name and/or credentials.
+	 *
+	 * This handler is exclusively for editing already-connected accounts.
+	 * It preserves the existing access_token and refresh_token — no OAuth
+	 * round-trip is triggered.
+	 *
+	 * @return void
+	 */
+	public function ajax_update_account() {
+		$this->verify_ajax();
+
+		// phpcs:disable WordPress.Security.NonceVerification.Missing
+		$account_id    = isset( $_POST['account_id'] )    ? absint( $_POST['account_id'] )                               : 0;
+		$account_name  = isset( $_POST['account_name'] )  ? sanitize_text_field( wp_unslash( $_POST['account_name'] ) )  : '';
+		$client_id     = isset( $_POST['client_id'] )     ? sanitize_text_field( wp_unslash( $_POST['client_id'] ) )     : '';
+		$client_secret = isset( $_POST['client_secret'] ) ? sanitize_text_field( wp_unslash( $_POST['client_secret'] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+		if ( ! $account_id ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid account ID.', 'spreadsheet-sync-for-gravity-forms' ) ) );
+		}
+
+		if ( ! $client_id || ! $client_secret ) {
+			wp_send_json_error( array( 'message' => __( 'Client ID and Client Secret are required.', 'spreadsheet-sync-for-gravity-forms' ) ) );
+		}
+
+		$existing = GFGS_Database::get_account( $account_id );
+
+		if ( ! $existing ) {
+			wp_send_json_error( array( 'message' => __( 'Account not found.', 'spreadsheet-sync-for-gravity-forms' ) ) );
+		}
+
+		// Decode the stored token blob so we can preserve the real access_token
+		// while updating client_id and client_secret.
+		$old_token_data = json_decode( $existing->access_token, true );
+		$old_token_data = is_array( $old_token_data ) ? $old_token_data : array();
+
+		GFGS_Database::save_account(
+			array(
+				'id'           => $account_id,
+				'account_name' => $account_name ? $account_name : $existing->account_name,
+				'access_token' => wp_json_encode(
+					array(
+						'access_token'  => isset( $old_token_data['access_token'] ) ? $old_token_data['access_token'] : '',
+						'client_id'     => $client_id,
+						'client_secret' => $client_secret,
+					)
+				),
+				// refresh_token and token_expires are NOT updated here —
+				// they are managed exclusively by handle_oauth_callback().
+			)
+		);
+
+		wp_send_json_success(
+			array(
+				'message'      => __( 'Account updated successfully.', 'spreadsheet-sync-for-gravity-forms' ),
+				'redirect_url' => admin_url( 'admin.php?page=gf_settings&subview=gf-google-sheets' ),
+			)
+		);
+	}
+
+	/**
 	 * AJAX: Test that the stored credentials can successfully obtain a valid token.
 	 *
 	 * @return void
 	 */
 	public function ajax_test_connection() {
 		$this->verify_ajax();
-
 		// Nonce verified above via verify_ajax() / check_ajax_referer().
 		// phpcs:disable WordPress.Security.NonceVerification.Missing
-		$client_id     = isset( $_POST['client_id'] ) ? sanitize_text_field( wp_unslash( $_POST['client_id'] ) ) : '';
+		$client_id     = isset( $_POST['client_id'] )     ? sanitize_text_field( wp_unslash( $_POST['client_id'] ) )     : '';
 		$client_secret = isset( $_POST['client_secret'] ) ? sanitize_text_field( wp_unslash( $_POST['client_secret'] ) ) : '';
-		$account_id    = isset( $_POST['account_id'] ) ? absint( $_POST['account_id'] ) : 0;
+		$account_id    = isset( $_POST['account_id'] )    ? absint( $_POST['account_id'] )                               : 0;
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		if ( ! $client_id || ! $client_secret ) {
@@ -858,7 +935,6 @@ class GFGS_Addon extends GFFeedAddOn {
 	public function ajax_get_spreadsheets() {
 		$this->verify_ajax();
 
-		// Nonce verified above via verify_ajax() / check_ajax_referer().
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$account_id = isset( $_POST['account_id'] ) ? absint( $_POST['account_id'] ) : 0;
 		$result     = $this->api->list_spreadsheets( $account_id );
@@ -880,7 +956,7 @@ class GFGS_Addon extends GFFeedAddOn {
 
 		// Nonce verified above via verify_ajax() / check_ajax_referer().
 		// phpcs:disable WordPress.Security.NonceVerification.Missing
-		$account_id     = isset( $_POST['account_id'] ) ? absint( $_POST['account_id'] ) : 0;
+		$account_id     = isset( $_POST['account_id'] )     ? absint( $_POST['account_id'] )                               : 0;
 		$spreadsheet_id = isset( $_POST['spreadsheet_id'] ) ? sanitize_text_field( wp_unslash( $_POST['spreadsheet_id'] ) ) : '';
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
@@ -901,11 +977,11 @@ class GFGS_Addon extends GFFeedAddOn {
 	public function ajax_get_sheet_headers() {
 		$this->verify_ajax();
 
-		// Nonce verified above via verify_ajax() / check_ajax_referer().
+    	// Nonce verified above via verify_ajax() / check_ajax_referer().
 		// phpcs:disable WordPress.Security.NonceVerification.Missing
-		$account_id     = isset( $_POST['account_id'] ) ? absint( $_POST['account_id'] ) : 0;
+		$account_id     = isset( $_POST['account_id'] )     ? absint( $_POST['account_id'] )                               : 0;
 		$spreadsheet_id = isset( $_POST['spreadsheet_id'] ) ? sanitize_text_field( wp_unslash( $_POST['spreadsheet_id'] ) ) : '';
-		$sheet_name     = isset( $_POST['sheet_name'] ) ? sanitize_text_field( wp_unslash( $_POST['sheet_name'] ) ) : '';
+		$sheet_name     = isset( $_POST['sheet_name'] )     ? sanitize_text_field( wp_unslash( $_POST['sheet_name'] ) )     : '';
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		$result = $this->api->get_sheet_headers( $account_id, $spreadsheet_id, $sheet_name );
@@ -933,39 +1009,36 @@ class GFGS_Addon extends GFFeedAddOn {
 	public function ajax_save_feed() {
 		$this->verify_ajax();
 
-		// Nonce verified above via verify_ajax() / check_ajax_referer().
-		// JSON fields: unslash only — sanitize_textarea_field strips valid JSON chars (<, >, ").
 		// phpcs:disable WordPress.Security.NonceVerification.Missing
 		// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		$field_map_raw    = isset( $_POST['field_map'] ) ? wp_unslash( $_POST['field_map'] ) : '[]';
+		$field_map_raw    = isset( $_POST['field_map'] )    ? wp_unslash( $_POST['field_map'] )    : '[]';
 		$date_formats_raw = isset( $_POST['date_formats'] ) ? wp_unslash( $_POST['date_formats'] ) : '{}';
-		$conditions_raw   = isset( $_POST['conditions'] ) ? wp_unslash( $_POST['conditions'] ) : '{}';
+		$conditions_raw   = isset( $_POST['conditions'] )   ? wp_unslash( $_POST['conditions'] )   : '{}';
 		// phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
-		$field_map    = json_decode( $field_map_raw, true );
+		$field_map    = json_decode( $field_map_raw,    true );
 		$date_formats = json_decode( $date_formats_raw, true );
-		$conditions   = json_decode( $conditions_raw, true );
+		$conditions   = json_decode( $conditions_raw,   true );
 
 		$data = array(
-			'id'             => isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0,
-			'form_id'        => isset( $_POST['form_id'] ) ? absint( $_POST['form_id'] ) : 0,
-			'feed_name'      => isset( $_POST['feed_name'] ) ? sanitize_text_field( wp_unslash( $_POST['feed_name'] ) ) : '',
-			'account_id'     => isset( $_POST['account_id'] ) ? absint( $_POST['account_id'] ) : 0,
-			'spreadsheet_id' => isset( $_POST['spreadsheet_id'] ) ? sanitize_text_field( wp_unslash( $_POST['spreadsheet_id'] ) ) : '',
-			'sheet_id'       => isset( $_POST['sheet_id'] ) ? sanitize_text_field( wp_unslash( $_POST['sheet_id'] ) ) : '',
-			'sheet_name'     => isset( $_POST['sheet_name'] ) ? sanitize_text_field( wp_unslash( $_POST['sheet_name'] ) ) : '',
-			'field_map'      => is_array( $field_map ) ? $field_map : array(),
+			'id'             => isset( $_POST['id'] )             ? absint( $_POST['id'] )                                           : 0,
+			'form_id'        => isset( $_POST['form_id'] )        ? absint( $_POST['form_id'] )                                      : 0,
+			'feed_name'      => isset( $_POST['feed_name'] )      ? sanitize_text_field( wp_unslash( $_POST['feed_name'] ) )         : '',
+			'account_id'     => isset( $_POST['account_id'] )     ? absint( $_POST['account_id'] )                                   : 0,
+			'spreadsheet_id' => isset( $_POST['spreadsheet_id'] ) ? sanitize_text_field( wp_unslash( $_POST['spreadsheet_id'] ) )    : '',
+			'sheet_id'       => isset( $_POST['sheet_id'] )       ? sanitize_text_field( wp_unslash( $_POST['sheet_id'] ) )          : '',
+			'sheet_name'     => isset( $_POST['sheet_name'] )     ? sanitize_text_field( wp_unslash( $_POST['sheet_name'] ) )        : '',
+			'field_map'      => is_array( $field_map )    ? $field_map    : array(),
 			'date_formats'   => is_array( $date_formats ) ? $date_formats : array(),
-			'conditions'     => is_array( $conditions ) ? $conditions : array(),
-			'send_event'     => isset( $_POST['send_event'] ) ? sanitize_text_field( wp_unslash( $_POST['send_event'] ) ) : 'form_submit',
-			'is_active'      => isset( $_POST['is_active'] ) ? absint( $_POST['is_active'] ) : 1,
+			'conditions'     => is_array( $conditions )   ? $conditions   : array(),
+			'send_event'     => isset( $_POST['send_event'] )     ? sanitize_text_field( wp_unslash( $_POST['send_event'] ) )        : 'form_submit',
+			'is_active'      => isset( $_POST['is_active'] )      ? absint( $_POST['is_active'] )                                    : 1,
 		);
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		if ( ! $data['form_id'] ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid form ID.', 'spreadsheet-sync-for-gravity-forms' ) ) );
 		}
-
 		// save_feed() encodes array columns to JSON automatically.
 		$feed_id = GFGS_Database::save_feed( $data );
 
@@ -995,41 +1068,39 @@ class GFGS_Addon extends GFFeedAddOn {
 	}
 
 	/**
-	 * AJAX: Handle bulk actions from the dropdown
-	 * 
+	 * AJAX: Handle bulk actions from the dropdown.
+	 *
 	 * @return void
 	 */
-	public function ajax_bulk_action(){
+	public function ajax_bulk_action() {
 		$this->verify_ajax();
 
 		// phpcs:disable WordPress.Security.NonceVerification.Missing
-		$action = isset($_POST['bulk_action']) ? sanitize_text_field($_POST['bulk_action']) : '';
-		$form_id = isset($_POST['form_id']) ? absint($_POST['form_id']) : 0;
-		$feed_ids = isset( $_POST['feed_ids'] ) ? array_map( 'absint', (array) $_POST['feed_ids'] ) : array();
+		$action   = isset( $_POST['bulk_action'] ) ? sanitize_text_field( $_POST['bulk_action'] ) : '';
+		$form_id  = isset( $_POST['form_id'] )     ? absint( $_POST['form_id'] )                  : 0;
+		$feed_ids = isset( $_POST['feed_ids'] )    ? array_map( 'absint', (array) $_POST['feed_ids'] ) : array();
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
-		switch($action){
+		switch ( $action ) {
 			case 'delete_selected_feeds':
-				if(empty($feed_ids)){
-					wp_send_json_error(array('message' => 'No feeds selected'));
+				if ( empty( $feed_ids ) ) {
+					wp_send_json_error( array( 'message' => 'No feeds selected.' ) );
 				}
-
-				GFGS_Database::deleted_selected_feeds($feed_ids);
+				GFGS_Database::deleted_selected_feeds( $feed_ids );
 				wp_send_json_success( array( 'message' => 'Selected feeds deleted.' ) );
-            	break;
-			
-		case 'delete_all_feeds':
-            if ( ! $form_id ) {
-                wp_send_json_error( array( 'message' => 'Invalid Form ID.' ) );
-            }
-            // Logic to delete everything for this form
-            GFGS_Database::delete_all_feeds( $form_id );
-            wp_send_json_success( array( 'message' => 'All feeds deleted.' ) );
-            break;
+				break;
 
-        default:
-            wp_send_json_error( array( 'message' => 'Unknown action.' ) );
-            break;
+			case 'delete_all_feeds':
+				if ( ! $form_id ) {
+					wp_send_json_error( array( 'message' => 'Invalid Form ID.' ) );
+				}
+				GFGS_Database::delete_all_feeds( $form_id );
+				wp_send_json_success( array( 'message' => 'All feeds deleted.' ) );
+				break;
+
+			default:
+				wp_send_json_error( array( 'message' => 'Unknown action.' ) );
+				break;
 		}
 	}
 
@@ -1091,7 +1162,7 @@ class GFGS_Addon extends GFFeedAddOn {
 		// Nonce verified above via verify_ajax() / check_ajax_referer().
 		// phpcs:disable WordPress.Security.NonceVerification.Missing
 		$feed_id = isset( $_POST['feed_id'] ) ? absint( $_POST['feed_id'] ) : 0;
-		$active  = isset( $_POST['active'] ) ? absint( $_POST['active'] ) : 0;
+		$active  = isset( $_POST['active'] )  ? absint( $_POST['active'] )  : 0;
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		GFGS_Database::toggle_feed( $feed_id, $active );
@@ -1111,7 +1182,7 @@ class GFGS_Addon extends GFFeedAddOn {
 	 * @return void
 	 */
 	public function ajax_manual_send() {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- entry_id needed to build the nonce action string.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$entry_id = isset( $_POST['entry_id'] ) ? absint( $_POST['entry_id'] ) : 0;
 
 		if ( ! check_ajax_referer( 'gfgs_manual_send_' . $entry_id, 'nonce', false ) ) {

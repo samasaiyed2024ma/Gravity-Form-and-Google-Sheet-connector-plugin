@@ -6,10 +6,17 @@
  *   - Copy-to-clipboard for the redirect URI.
  *   - Disconnect (delete) a connected account.
  *   - Toggle client-secret visibility.
- *   - Save credentials and redirect to Google's OAuth consent screen.
+ *   - Save credentials and redirect to Google's OAuth consent screen (new accounts).
+ *   - Update credentials without OAuth (existing connected accounts).
  *   - Test an existing connection.
  *
  * All data comes from `window.gfgsSettings` injected via wp_localize_script().
+ * Key properties used from gfgsSettings:
+ *   S.ajaxUrl      — WordPress AJAX endpoint.
+ *   S.nonce        — Security nonce.
+ *   S.pendingId    — Account ID when editing (0 for new).
+ *   S.isAuthorized — 1 if the account already has a refresh token, 0 otherwise.
+ *   S.addAccountUrl — URL to the add-account view (used for redirect after update).
  *
  * @package GFGS
  */
@@ -108,30 +115,27 @@
 	 * Swaps the eye-show / eye-hide SVG icons accordingly.
 	 */
 	$( document ).on( 'click', '.gfgs-toggle-secret', function () {
-		var $input  = $( '#gfgs-client-secret' );
-		var isPass  = $input.attr( 'type' ) === 'password';
+		var $input = $( '#gfgs-client-secret' );
+		var isPass = $input.attr( 'type' ) === 'password';
 
 		$input.attr( 'type', isPass ? 'text' : 'password' );
 		$( this ).find( '.eye-show' ).toggle( isPass );
 		$( this ).find( '.eye-hide' ).toggle( ! isPass );
 	} );
 
-	// ── Save credentials & start OAuth flow ──────────────────────────────────
+	// ── Save credentials & start OAuth flow (NEW accounts only) ──────────────
 
 	/**
-	 * Save the account name, Client ID, and Client Secret via AJAX,
-	 * then redirect the user to Google's OAuth consent screen.
+	 * Saves credentials for a brand-new (or incomplete) account, then redirects
+	 * the user to Google's OAuth consent screen.
 	 *
-	 * On success the server returns an `auth_url` pointing to Google.
-	 * The plugin stores a "pending" account row so the OAuth callback can
-	 * match the returned code to the right credentials.
+	 * This button is only rendered by the template when S.isAuthorized === 0.
 	 */
 	$( document ).on( 'click', '#gfgs-save-connect-btn', function () {
-		var $btn      = $( this );
-		var name      = $( '#gfgs-account-name' ).val().trim();
-		var clientId  = $( '#gfgs-client-id' ).val().trim();
-		var secret    = $( '#gfgs-client-secret' ).val().trim();
-		var pendingId = S.pendingId || 0;
+		var $btn     = $( this );
+		var name     = $( '#gfgs-account-name' ).val().trim();
+		var clientId = $( '#gfgs-client-id' ).val().trim();
+		var secret   = $( '#gfgs-client-secret' ).val().trim();
 
 		if ( ! clientId || ! secret ) {
 			showConnectionResult( 'error', 'Client ID and Client Secret are required.' );
@@ -145,7 +149,7 @@
 			{
 				action:        'gfgs_save_account_creds',
 				nonce:         S.nonce,
-				account_id:    pendingId,
+				account_id:    S.pendingId || 0,
 				account_name:  name,
 				client_id:     clientId,
 				client_secret: secret,
@@ -170,15 +174,75 @@
 		} );
 	} );
 
+	// ── Update existing account (no OAuth) ────────────────────────────────────
+
+	/**
+	 * Updates an already-connected account's name and/or credentials.
+	 * Does NOT redirect to Google — the refresh token is preserved as-is.
+	 *
+	 * This button is only rendered by the template when S.isAuthorized === 1.
+	 * The account ID is read from S.pendingId (injected via wp_localize_script)
+	 * so it works even if the template's data-account-id attribute is missing.
+	 */
+	$( document ).on( 'click', '#gfgs-update-account-btn', function () {
+		var $btn      = $( this );
+		var name      = $( '#gfgs-account-name' ).val().trim();
+		var clientId  = $( '#gfgs-client-id' ).val().trim();
+		var secret    = $( '#gfgs-client-secret' ).val().trim();
+
+		// Prefer data-account-id on the button; fall back to S.pendingId.
+		var accountId = parseInt( $btn.data( 'account-id' ), 10 ) || S.pendingId || 0;
+
+		if ( ! accountId ) {
+			showConnectionResult( 'error', 'Could not determine account ID. Please refresh and try again.' );
+			return;
+		}
+
+		if ( ! clientId || ! secret ) {
+			showConnectionResult( 'error', 'Client ID and Client Secret are required.' );
+			return;
+		}
+
+		$btn.prop( 'disabled', true ).html( '<span class="gfgs-spinner"></span> Saving\u2026' );
+
+		$.post(
+			S.ajaxUrl,
+			{
+				action:        'gfgs_update_account',
+				nonce:         S.nonce,
+				account_id:    accountId,
+				account_name:  name,
+				client_id:     clientId,
+				client_secret: secret,
+			},
+			function ( res ) {
+				if ( res.success ) {
+					showConnectionResult( 'success', ( res.data && res.data.message ) || 'Account updated successfully.' );
+					// Redirect back to the account list after a short pause.
+					setTimeout( function () {
+						window.location.href = ( res.data && res.data.redirect_url )
+							? res.data.redirect_url
+							: S.addAccountUrl.replace( '&gfgs_view=add_account', '' );
+					}, 1200 );
+				} else {
+					$btn.prop( 'disabled', false ).html( 'Save Changes' );
+					showConnectionResult( 'error', ( res.data && res.data.message ) || 'An error occurred.' );
+				}
+			}
+		).fail( function () {
+			$btn.prop( 'disabled', false ).html( 'Save Changes' );
+			showConnectionResult( 'error', 'Request failed. Please try again.' );
+		} );
+	} );
+
 	// ── Test connection ───────────────────────────────────────────────────────
 
 	/**
 	 * Verify that the saved credentials can obtain a valid token.
-	 * Only enabled when the account already has a refresh_token.
+	 * Only enabled when the account already has a refresh_token (S.isAuthorized).
 	 */
 	$( document ).on( 'click', '#gfgs-test-btn', function () {
-		var $btn      = $( this );
-		var pendingId = S.pendingId || 0;
+		var $btn = $( this );
 
 		$btn.prop( 'disabled', true ).html( '<span class="gfgs-spinner"></span> Testing\u2026' );
 
@@ -187,7 +251,7 @@
 			{
 				action:        'gfgs_test_connection',
 				nonce:         S.nonce,
-				account_id:    pendingId,
+				account_id:    S.pendingId || 0,
 				client_id:     $( '#gfgs-client-id' ).val().trim(),
 				client_secret: $( '#gfgs-client-secret' ).val().trim(),
 			},

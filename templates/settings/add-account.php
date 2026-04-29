@@ -11,6 +11,15 @@
  *   @var string      $add_account_url URL to the account list view.
  *   @var string      $error_msg       Error message (may be empty).
  *
+ * Button logic:
+ *   - Authorized account ($gfgs_is_authorized = true):
+ *       Renders #gfgs-update-account-btn  → calls gfgs_update_account (no OAuth).
+ *   - New / incomplete account ($gfgs_is_authorized = false):
+ *       Renders #gfgs-save-connect-btn    → calls gfgs_save_account_creds → OAuth redirect.
+ *
+ * The account ID is also passed via gfgsSettings.pendingId (wp_localize_script)
+ * so JS always has it regardless of template rendering.
+ *
  * @package GFGS
  */
 
@@ -22,9 +31,6 @@ $gfgs_is_authorized = ! empty( $pending_account->refresh_token );
 $gfgs_page_title    = $pending_id
 	? esc_html__( 'Edit Google Account', 'spreadsheet-sync-for-gravity-forms' )
 	: esc_html__( 'Add New Google Account', 'spreadsheet-sync-for-gravity-forms' );
-$gfgs_btn_label     = $gfgs_is_authorized
-	? esc_html__( 'Save Changes', 'spreadsheet-sync-for-gravity-forms' )
-	: esc_html__( 'Save & Connect with Google', 'spreadsheet-sync-for-gravity-forms' );
 ?>
 <div class="gfgs-settings-wrap">
 
@@ -38,7 +44,7 @@ $gfgs_btn_label     = $gfgs_is_authorized
 				</svg>
 			</a>
 			<div>
-				<h1><?php echo esc_html($gfgs_page_title); ?></h1>
+				<h1><?php echo esc_html( $gfgs_page_title ); ?></h1>
 				<p><?php esc_html_e( 'Connect a Google account to use with Gravity Forms feeds', 'spreadsheet-sync-for-gravity-forms' ); ?></p>
 			</div>
 		</div>
@@ -181,15 +187,39 @@ $gfgs_btn_label     = $gfgs_is_authorized
 					<?php endif; ?>
 
 					<div class="gfgs-action-bar">
+
 						<button type="button"
 						        id="gfgs-test-btn"
 						        class="gfgs-btn gfgs-btn-outline"
 						        <?php echo $gfgs_is_authorized ? '' : 'disabled'; ?>>
 							<?php esc_html_e( 'Test Connection', 'spreadsheet-sync-for-gravity-forms' ); ?>
 						</button>
-						<button type="button" id="gfgs-save-connect-btn" class="gfgs-btn gfgs-btn-primary">
-							<?php echo esc_html($gfgs_btn_label); ?>
-						</button>
+
+						<?php if ( $gfgs_is_authorized ) : ?>
+							<!--
+								Existing connected account:
+								Clicking this calls gfgs_update_account — no OAuth redirect.
+								data-account-id is a belt-and-suspenders fallback;
+								JS also reads S.pendingId from wp_localize_script.
+							-->
+							<button type="button"
+							        id="gfgs-update-account-btn"
+							        class="gfgs-btn gfgs-btn-primary"
+							        data-account-id="<?php echo esc_attr( $pending_id ); ?>">
+								<?php esc_html_e( 'Save Changes', 'spreadsheet-sync-for-gravity-forms' ); ?>
+							</button>
+						<?php else : ?>
+							<!--
+								New account or one that never finished OAuth:
+								Clicking this calls gfgs_save_account_creds then redirects to Google.
+							-->
+							<button type="button"
+							        id="gfgs-save-connect-btn"
+							        class="gfgs-btn gfgs-btn-primary">
+								<?php esc_html_e( 'Save & Connect with Google', 'spreadsheet-sync-for-gravity-forms' ); ?>
+							</button>
+						<?php endif; ?>
+
 					</div>
 
 					<div id="gfgs-connection-result" style="display:none;margin-top:12px;"></div>
@@ -205,14 +235,15 @@ $gfgs_btn_label     = $gfgs_is_authorized
 				<h4><?php esc_html_e( 'Quick Setup Guide', 'spreadsheet-sync-for-gravity-forms' ); ?></h4>
 
 				<?php
-				$gfgs_mini_steps = [
-					[ 'url' => 'https://console.cloud.google.com/projectcreate',                          'label' => __( 'Create a Google Cloud project', 'spreadsheet-sync-for-gravity-forms' ) ],
-					[ 'url' => 'https://console.cloud.google.com/apis/library/sheets.googleapis.com',    'label' => __( 'Enable Google Sheets API', 'spreadsheet-sync-for-gravity-forms' ) ],
-					[ 'url' => 'https://console.cloud.google.com/apis/library/drive.googleapis.com',     'label' => __( 'Enable Google Drive API', 'spreadsheet-sync-for-gravity-forms' ) ],
-					[ 'url' => 'https://console.cloud.google.com/apis/credentials/consent',              'label' => __( 'Configure OAuth Consent Screen', 'spreadsheet-sync-for-gravity-forms' ) ],
-					[ 'url' => 'https://console.cloud.google.com/apis/credentials',                      'label' => __( 'Create OAuth 2.0 Client ID', 'spreadsheet-sync-for-gravity-forms' ) ],
-					[ 'url' => null,                                                                      'label' => __( 'Enter credentials here & connect', 'spreadsheet-sync-for-gravity-forms' ) ],
-				];
+				$gfgs_mini_steps = array(
+					array( 'url' => 'https://console.cloud.google.com/projectcreate',                       'label' => __( 'Create a Google Cloud project', 'spreadsheet-sync-for-gravity-forms' ) ),
+					array( 'url' => 'https://console.cloud.google.com/apis/library/sheets.googleapis.com', 'label' => __( 'Enable Google Sheets API', 'spreadsheet-sync-for-gravity-forms' ) ),
+					array( 'url' => 'https://console.cloud.google.com/apis/library/drive.googleapis.com',  'label' => __( 'Enable Google Drive API', 'spreadsheet-sync-for-gravity-forms' ) ),
+					array( 'url' => 'https://console.cloud.google.com/apis/credentials/consent',           'label' => __( 'Configure OAuth Consent Screen', 'spreadsheet-sync-for-gravity-forms' ) ),
+					array( 'url' => 'https://console.cloud.google.com/apis/credentials',                   'label' => __( 'Create OAuth 2.0 Client ID', 'spreadsheet-sync-for-gravity-forms' ) ),
+					array( 'url' => null,                                                                   'label' => __( 'Enter credentials here & connect', 'spreadsheet-sync-for-gravity-forms' ) ),
+				);
+
 				foreach ( $gfgs_mini_steps as $gfgs_i => $gfgs_step ) :
 					$gfgs_step_num = $gfgs_i + 1;
 					?>
