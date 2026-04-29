@@ -52,13 +52,13 @@ class GFGS_Plugin_Details {
 
 		$links[] = sprintf(
 			'<a href="#TB_inline?width=880&height=600&inlineId=gfgs-plugin-details" class="thickbox" title="%s">%s</a>',
-			esc_attr__( 'Connect Gravity Forms with Google Sheets', GFGS ),
-			esc_html__( 'View Details', GFGS )
+			esc_attr__( 'Connect Gravity Forms with Google Sheets', 'spreadsheet-sync-for-gravity-forms' ),
+			esc_html__( 'View Details', 'spreadsheet-sync-for-gravity-forms' )
 		);
 
 		$links[] = sprintf(
 			'<a href="https://mervanagency.io" target="_blank" rel="noopener noreferrer">%s</a>',
-			esc_html__( 'Visit Plugin Site', GFGS )
+			esc_html__( 'Visit Plugin Site', 'spreadsheet-sync-for-gravity-forms' )
 		);
 
 		return $links;
@@ -148,16 +148,16 @@ class GFGS_Plugin_Details {
 					<path d="M7 8h10M7 12h10M7 16h6" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
 				</svg>
 				<div>
-					<h2><?php esc_html_e( 'Connect Gravity Forms with Google Sheets', GFGS ); ?></h2>
+					<h2><?php esc_html_e( 'Connect Gravity Forms with Google Sheets', 'spreadsheet-sync-for-gravity-forms' ); ?></h2>
 					<div class="gfgs-modal-meta">
 						<span class="gfgs-modal-version">
 							<?php
 							/* translators: %s: version number */
-							printf( esc_html__( 'Version %s', GFGS ), esc_html( GFGS_VERSION ) );
+							printf( esc_html__( 'Version %s', 'spreadsheet-sync-for-gravity-forms' ), esc_html( GFGS_VERSION ) );
 							?>
 						</span>
 						<span class="gfgs-modal-author">
-							<?php esc_html_e( 'By', GFGS ); ?>
+							<?php esc_html_e( 'By', 'spreadsheet-sync-for-gravity-forms' ); ?>
 							<a href="https://mervanagency.io" target="_blank" rel="noopener noreferrer">Mervan Agency</a>
 						</span>
 					</div>
@@ -195,13 +195,13 @@ class GFGS_Plugin_Details {
 	 */
 	private function render_sidebar(): void {
 		$meta_rows = [
-			__( 'Version:', GFGS )            => esc_html( GFGS_VERSION ),
-			__( 'Author:', GFGS )              => '<a href="https://mervanagency.io" target="_blank" rel="noopener noreferrer">Mervan Agency</a>',
-			__( 'Last Updated:', GFGS )        => esc_html__( 'April 2026', GFGS ),
-			__( 'Requires WordPress:', GFGS )  => '5.8 ' . esc_html__( 'or higher', GFGS ),
-			__( 'Compatible up to:', GFGS )    => '6.7',
-			__( 'Requires PHP:', GFGS )        => '7.4 ' . esc_html__( 'or higher', GFGS ),
-			__( 'Requires:', GFGS )            => 'Gravity Forms 2.6+',
+			__( 'Version:', 'spreadsheet-sync-for-gravity-forms' )            => esc_html( GFGS_VERSION ),
+			__( 'Author:', 'spreadsheet-sync-for-gravity-forms' )              => '<a href="https://mervanagency.io" target="_blank" rel="noopener noreferrer">Mervan Agency</a>',
+			__( 'Last Updated:', 'spreadsheet-sync-for-gravity-forms' )        => esc_html__( 'April 2026', 'spreadsheet-sync-for-gravity-forms' ),
+			__( 'Requires WordPress:', 'spreadsheet-sync-for-gravity-forms' )  => '5.8 ' . esc_html__( 'or higher', 'spreadsheet-sync-for-gravity-forms' ),
+			__( 'Compatible up to:', 'spreadsheet-sync-for-gravity-forms' )    => '6.9',
+			__( 'Requires PHP:', 'spreadsheet-sync-for-gravity-forms' )        => '7.4 ' . esc_html__( 'or higher', 'spreadsheet-sync-for-gravity-forms' ),
+			__( 'Requires:', 'spreadsheet-sync-for-gravity-forms' )            => 'Gravity Forms 2.6+',
 		];
 		?>
 		<div class="gfgs-modal-sidebar">
@@ -215,13 +215,13 @@ class GFGS_Plugin_Details {
 			<div class="gfgs-sidebar-block">
 				<a href="<?php echo esc_url( admin_url( 'admin.php?page=gf_settings&subview=gf-google-sheets' ) ); ?>"
 				   class="button button-primary gfgs-sidebar-btn">
-					<?php esc_html_e( 'Go to Settings', GFGS ); ?>
+					<?php esc_html_e( 'Go to Settings', 'spreadsheet-sync-for-gravity-forms' ); ?>
 				</a>
 				<a href="https://mervanagency.io"
 				   target="_blank"
 				   rel="noopener noreferrer"
 				   class="button gfgs-sidebar-btn">
-					<?php esc_html_e( 'Plugin Homepage', GFGS ); ?>
+					<?php esc_html_e( 'Plugin Homepage', 'spreadsheet-sync-for-gravity-forms' ); ?>
 				</a>
 			</div>
 		</div>
@@ -237,36 +237,36 @@ class GFGS_Plugin_Details {
 	 */
 	private function render_tab_description(): void {
 		$features = [
-			__( 'Connect multiple Google accounts', GFGS ),
-			__( 'Map any form field to any sheet column', GFGS ),
-			__( 'Multiple trigger events (submit, payment, entry update)', GFGS ),
-			__( 'Conditional logic support per feed', GFGS ),
-			__( 'Support for all Gravity Forms field types', GFGS ),
-			__( 'Manual send from entry detail page', GFGS ),
-			__( 'Multiple feeds per form', GFGS ),
-			__( 'Secure OAuth 2.0 authentication', GFGS ),
-			__( 'Entry notes for success and error logging', GFGS ),
+			__( 'Connect multiple Google accounts', 'spreadsheet-sync-for-gravity-forms' ),
+			__( 'Map any form field to any sheet column', 'spreadsheet-sync-for-gravity-forms' ),
+			__( 'Multiple trigger events (submit, payment, entry update)', 'spreadsheet-sync-for-gravity-forms' ),
+			__( 'Conditional logic support per feed', 'spreadsheet-sync-for-gravity-forms' ),
+			__( 'Support for all Gravity Forms field types', 'spreadsheet-sync-for-gravity-forms' ),
+			__( 'Manual send from entry detail page', 'spreadsheet-sync-for-gravity-forms' ),
+			__( 'Multiple feeds per form', 'spreadsheet-sync-for-gravity-forms' ),
+			__( 'Secure OAuth 2.0 authentication', 'spreadsheet-sync-for-gravity-forms' ),
+			__( 'Entry notes for success and error logging', 'spreadsheet-sync-for-gravity-forms' ),
 		];
 
 		$field_types = [
-			__( 'Text / Textarea', GFGS ),
-			__( 'Email / Phone / Number', GFGS ),
-			__( 'Select / Radio', GFGS ),
-			__( 'Checkbox / Multi-select', GFGS ),
-			__( 'Name / Address', GFGS ),
-			__( 'Date / Time', GFGS ),
-			__( 'File Upload', GFGS ),
-			__( 'List Fields', GFGS ),
-			__( 'Product Fields', GFGS ),
-			__( 'Entry Meta (ID, IP, URL)', GFGS ),
+			__( 'Text / Textarea', 'spreadsheet-sync-for-gravity-forms' ),
+			__( 'Email / Phone / Number', 'spreadsheet-sync-for-gravity-forms' ),
+			__( 'Select / Radio', 'spreadsheet-sync-for-gravity-forms' ),
+			__( 'Checkbox / Multi-select', 'spreadsheet-sync-for-gravity-forms' ),
+			__( 'Name / Address', 'spreadsheet-sync-for-gravity-forms' ),
+			__( 'Date / Time', 'spreadsheet-sync-for-gravity-forms' ),
+			__( 'File Upload', 'spreadsheet-sync-for-gravity-forms' ),
+			__( 'List Fields', 'spreadsheet-sync-for-gravity-forms' ),
+			__( 'Product Fields', 'spreadsheet-sync-for-gravity-forms' ),
+			__( 'Entry Meta (ID, IP, URL)', 'spreadsheet-sync-for-gravity-forms' ),
 		];
 		?>
 		<div class="gfgs-tab-content active" id="gfgs-tab-description">
 			<p class="gfgs-tab-intro">
-				<?php esc_html_e( 'Automatically send Gravity Forms submissions to Google Sheets. Map form fields to sheet columns, set conditions, and manage multiple feeds.', GFGS ); ?>
+				<?php esc_html_e( 'Automatically send Gravity Forms submissions to Google Sheets. Map form fields to sheet columns, set conditions, and manage multiple feeds.', 'spreadsheet-sync-for-gravity-forms' ); ?>
 			</p>
 
-			<h4><?php esc_html_e( 'Key Features', GFGS ); ?></h4>
+			<h4><?php esc_html_e( 'Key Features', 'spreadsheet-sync-for-gravity-forms' ); ?></h4>
 			<ul class="gfgs-feature-list">
 				<?php foreach ( $features as $feature ) : ?>
 					<li>
@@ -276,7 +276,7 @@ class GFGS_Plugin_Details {
 				<?php endforeach; ?>
 			</ul>
 
-			<h4><?php esc_html_e( 'Supported Field Types', GFGS ); ?></h4>
+			<h4><?php esc_html_e( 'Supported Field Types', 'spreadsheet-sync-for-gravity-forms' ); ?></h4>
 			<div class="gfgs-field-types-grid">
 				<?php foreach ( $field_types as $type ) : ?>
 					<span class="gfgs-field-type-badge"><?php echo esc_html( $type ); ?></span>
@@ -294,36 +294,36 @@ class GFGS_Plugin_Details {
 	private function render_tab_installation(): void {
 		$steps = [
 			[
-				'title' => __( 'Upload & Activate', GFGS ),
-				'desc'  => __( 'Go to Plugins → Add New → Upload Plugin, select the zip file, and click Install Now. Once finished, click Activate.', GFGS ),
+				'title' => __( 'Upload & Activate', 'spreadsheet-sync-for-gravity-forms' ),
+				'desc'  => __( 'Go to Plugins → Add New → Upload Plugin, select the zip file, and click Install Now. Once finished, click Activate.', 'spreadsheet-sync-for-gravity-forms' ),
 			],
 			[
-				'title' => __( 'Ensure Gravity Forms is Active', GFGS ),
-				'desc'  => __( 'This plugin is an add-on. Make sure Gravity Forms (v2.6+) is installed and activated on your site.', GFGS ),
+				'title' => __( 'Ensure Gravity Forms is Active', 'spreadsheet-sync-for-gravity-forms' ),
+				'desc'  => __( 'This plugin is an add-on. Make sure Gravity Forms (v2.6+) is installed and activated on your site.', 'spreadsheet-sync-for-gravity-forms' ),
 			],
 			[
-				'title' => __( 'Go to Forms → Settings → Google Sheets', GFGS ),
-				'desc'  => __( 'Navigate to the plugin settings page to get started.', GFGS ),
+				'title' => __( 'Go to Forms → Settings → Google Sheets', 'spreadsheet-sync-for-gravity-forms' ),
+				'desc'  => __( 'Navigate to the plugin settings page to get started.', 'spreadsheet-sync-for-gravity-forms' ),
 			],
 			[
-				'title' => __( 'Create a Google Cloud Project', GFGS ),
-				'desc'  => __( 'Go to Google Cloud Console, create a project, and enable the Google Sheets API and Google Drive API.', GFGS ),
+				'title' => __( 'Create a Google Cloud Project', 'spreadsheet-sync-for-gravity-forms' ),
+				'desc'  => __( 'Go to Google Cloud Console, create a project, and enable the Google Sheets API and Google Drive API.', 'spreadsheet-sync-for-gravity-forms' ),
 			],
 			[
-				'title' => __( 'Configure OAuth Consent Screen', GFGS ),
-				'desc'  => __( 'Set user type to External and add your email as a test user.', GFGS ),
+				'title' => __( 'Configure OAuth Consent Screen', 'spreadsheet-sync-for-gravity-forms' ),
+				'desc'  => __( 'Set user type to External and add your email as a test user.', 'spreadsheet-sync-for-gravity-forms' ),
 			],
 			[
-				'title' => __( 'Create OAuth 2.0 Credentials', GFGS ),
-				'desc'  => __( 'Create a Web Application OAuth client and add your redirect URI from the plugin settings page.', GFGS ),
+				'title' => __( 'Create OAuth 2.0 Credentials', 'spreadsheet-sync-for-gravity-forms' ),
+				'desc'  => __( 'Create a Web Application OAuth client and add your redirect URI from the plugin settings page.', 'spreadsheet-sync-for-gravity-forms' ),
 			],
 			[
-				'title' => __( 'Connect Your Google Account', GFGS ),
-				'desc'  => __( 'Click Add New Account, enter your Client ID and Secret, then authorize with Google.', GFGS ),
+				'title' => __( 'Connect Your Google Account', 'spreadsheet-sync-for-gravity-forms' ),
+				'desc'  => __( 'Click Add New Account, enter your Client ID and Secret, then authorize with Google.', 'spreadsheet-sync-for-gravity-forms' ),
 			],
 			[
-				'title' => __( 'Create a Feed', GFGS ),
-				'desc'  => __( 'Open any Gravity Form, go to Settings → Google Sheets, and click Add New Feed to start mapping fields.', GFGS ),
+				'title' => __( 'Create a Feed', 'spreadsheet-sync-for-gravity-forms' ),
+				'desc'  => __( 'Open any Gravity Form, go to Settings → Google Sheets, and click Add New Feed to start mapping fields.', 'spreadsheet-sync-for-gravity-forms' ),
 			],
 		];
 		?>
@@ -350,32 +350,32 @@ class GFGS_Plugin_Details {
 	private function render_tab_faq(): void {
 		$faqs = [
 			[
-				'q' => __( 'Does this plugin require Gravity Forms?', GFGS ),
-				'a' => __( 'Yes, Gravity Forms must be installed and activated. Version 2.6 or higher is required.', GFGS ),
+				'q' => __( 'Does this plugin require Gravity Forms?', 'spreadsheet-sync-for-gravity-forms' ),
+				'a' => __( 'Yes, Gravity Forms must be installed and activated. Version 2.6 or higher is required.', 'spreadsheet-sync-for-gravity-forms' ),
 			],
 			[
-				'q' => __( 'Can I connect multiple Google accounts?', GFGS ),
-				'a' => __( 'Yes, you can connect as many Google accounts as needed. Each feed can use a different account.', GFGS ),
+				'q' => __( 'Can I connect multiple Google accounts?', 'spreadsheet-sync-for-gravity-forms' ),
+				'a' => __( 'Yes, you can connect as many Google accounts as needed. Each feed can use a different account.', 'spreadsheet-sync-for-gravity-forms' ),
 			],
 			[
-				'q' => __( 'Can I send one form to multiple spreadsheets?', GFGS ),
-				'a' => __( 'Yes, you can create multiple feeds per form, each sending to a different spreadsheet or sheet tab.', GFGS ),
+				'q' => __( 'Can I send one form to multiple spreadsheets?', 'spreadsheet-sync-for-gravity-forms' ),
+				'a' => __( 'Yes, you can create multiple feeds per form, each sending to a different spreadsheet or sheet tab.', 'spreadsheet-sync-for-gravity-forms' ),
 			],
 			[
-				'q' => __( 'What happens if the Google API call fails?', GFGS ),
-				'a' => __( 'The error is logged in the entry notes. You can manually resend from the entry detail page using the Send to Google Sheets button.', GFGS ),
+				'q' => __( 'What happens if the Google API call fails?', 'spreadsheet-sync-for-gravity-forms' ),
+				'a' => __( 'The error is logged in the entry notes. You can manually resend from the entry detail page using the Send to Google Sheets button.', 'spreadsheet-sync-for-gravity-forms' ),
 			],
 			[
-				'q' => __( 'Does it support conditional logic?', GFGS ),
-				'a' => __( 'Yes, each feed supports conditional logic so you can control exactly when entries are sent to Google Sheets.', GFGS ),
+				'q' => __( 'Does it support conditional logic?', 'spreadsheet-sync-for-gravity-forms' ),
+				'a' => __( 'Yes, each feed supports conditional logic so you can control exactly when entries are sent to Google Sheets.', 'spreadsheet-sync-for-gravity-forms' ),
 			],
 			[
-				'q' => __( 'Is my data secure?', GFGS ),
-				'a' => __( 'Yes. OAuth tokens are stored securely in your WordPress database. Data is sent directly from your site to Google — nothing passes through our servers.', GFGS ),
+				'q' => __( 'Is my data secure?', 'spreadsheet-sync-for-gravity-forms' ),
+				'a' => __( 'Yes. OAuth tokens are stored securely in your WordPress database. Data is sent directly from your site to Google — nothing passes through our servers.', 'spreadsheet-sync-for-gravity-forms' ),
 			],
 			[
-				'q' => __( 'Will it work on localhost?', GFGS ),
-				'a' => __( 'Google OAuth requires a publicly accessible URL. For local development, use a tunneling tool like ngrok or ddev share to get a public URL.', GFGS ),
+				'q' => __( 'Will it work on localhost?', 'spreadsheet-sync-for-gravity-forms' ),
+				'a' => __( 'Google OAuth requires a publicly accessible URL. For local development, use a tunneling tool like ngrok or ddev share to get a public URL.', 'spreadsheet-sync-for-gravity-forms' ),
 			],
 		];
 		?>
@@ -405,15 +405,15 @@ class GFGS_Plugin_Details {
 			[
 				'version' => '1.0.0',
 				'date'    => '',
-				'label'   => __( 'Initial Release', GFGS ),
+				'label'   => __( 'Initial Release', 'spreadsheet-sync-for-gravity-forms' ),
 				'changes' => [
-					__( 'Connect multiple Google accounts via OAuth 2.0', GFGS ),
-					__( 'Create feeds with field mapping', GFGS ),
-					__( 'Support for all Gravity Forms field types', GFGS ),
-					__( 'Conditional logic per feed', GFGS ),
-					__( 'Multiple trigger events', GFGS ),
-					__( 'Manual send from entry detail page', GFGS ),
-					__( 'Entry notes for success and error logging', GFGS ),
+					__( 'Connect multiple Google accounts via OAuth 2.0', 'spreadsheet-sync-for-gravity-forms' ),
+					__( 'Create feeds with field mapping', 'spreadsheet-sync-for-gravity-forms' ),
+					__( 'Support for all Gravity Forms field types', 'spreadsheet-sync-for-gravity-forms' ),
+					__( 'Conditional logic per feed', 'spreadsheet-sync-for-gravity-forms' ),
+					__( 'Multiple trigger events', 'spreadsheet-sync-for-gravity-forms' ),
+					__( 'Manual send from entry detail page', 'spreadsheet-sync-for-gravity-forms' ),
+					__( 'Entry notes for success and error logging', 'spreadsheet-sync-for-gravity-forms' ),
 				],
 			],
 		];
@@ -450,10 +450,10 @@ class GFGS_Plugin_Details {
 	 */
 	private function get_tabs(): array {
 		return [
-			'description'  => __( 'Description', GFGS ),
-			'installation' => __( 'Installation', GFGS ),
-			'faq'          => __( 'FAQ', GFGS ),
-			'changelog'    => __( 'Changelog', GFGS ),
+			'description'  => __( 'Description', 'spreadsheet-sync-for-gravity-forms' ),
+			'installation' => __( 'Installation', 'spreadsheet-sync-for-gravity-forms' ),
+			'faq'          => __( 'FAQ', 'spreadsheet-sync-for-gravity-forms' ),
+			'changelog'    => __( 'Changelog', 'spreadsheet-sync-for-gravity-forms' ),
 		];
 	}
 }

@@ -174,7 +174,7 @@ class GFGS_Google_API{
 		$account = GFGS_Database::get_account( $account_id );
  
 		if ( ! $account ) {
-			return new WP_Error( 'no_account', __( 'Account not found.', GFGS ) );
+			return new WP_Error( 'no_account', __( 'Account not found.', 'spreadsheet-sync-for-gravity-forms' ) );
 		}
  
 		$token_data = json_decode( $account->access_token, true );
@@ -182,7 +182,7 @@ class GFGS_Google_API{
 		if ( empty( $token_data['access_token'] ) ) {
 			return new WP_Error(
 				'no_token',
-				__( 'No access token stored. Please re-authorize this account.', GFGS )
+				__( 'No access token stored. Please re-authorize this account.', 'spreadsheet-sync-for-gravity-forms' )
 			);
 		}
  

@@ -39,12 +39,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</svg>
 			</span>
 			<div>
-				<h1><?php esc_html_e( 'Google Sheets Integration', GFGS ); ?></h1>
-				<p><?php esc_html_e( 'Manage connected Google accounts for Gravity Forms', GFGS ); ?></p>
+				<h1><?php esc_html_e( 'Google Sheets Integration', 'spreadsheet-sync-for-gravity-forms' ); ?></h1>
+				<p><?php esc_html_e( 'Manage connected Google accounts for Gravity Forms', 'spreadsheet-sync-for-gravity-forms' ); ?></p>
 			</div>
 		</div>
 		<a href="<?php echo esc_url( $add_account_url ); ?>" class="gfgs-btn gfgs-btn-primary">
-			+ <?php esc_html_e( 'Add New Account', GFGS ); ?>
+			+ <?php esc_html_e( 'Add New Account', 'spreadsheet-sync-for-gravity-forms' ); ?>
 		</a>
 	</div>
 
@@ -52,5 +52,4 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<?php include __DIR__ . '/partials/setup-guide.php'; ?>
 		<?php include __DIR__ . '/partials/account-panel.php'; ?>
 	</div>
-
 </div>

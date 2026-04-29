@@ -4,9 +4,9 @@
  * Description: Connect Gravity Forms with Google Sheets. Map fields, create feeds, and automatically send form submissions to Google Sheets.
  * Version: 1.0.0
  * Author: Mervan Agency
- * Author URI: mervanagency.io
- * Text Domain: gf-google-sheets
- * Domain Path: /languages
+ * Text Domain: spreadsheet-sync-for-gravity-forms
+ * License: GPL v2 or later
+ * License URI: http://www.gnu.org/licenses/gpl-2.0.txt
  * Requires PHP: 7.4
  */
 
@@ -22,7 +22,6 @@ define( 'GFGS_PLUGIN_DIR',      plugin_dir_path( __FILE__ ) );
 define( 'GFGS_PLUGIN_URL',      plugin_dir_url( __FILE__ ) );
 define( 'GFGS_PLUGIN_FILE',     __FILE__ );
 define( 'GFGS_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
-define( 'GFGS',                 'gf-google-sheets' );
 
 final class GF_Google_Sheets {
 
@@ -45,6 +44,7 @@ final class GF_Google_Sheets {
 
         // Priority 5 ensures we run before other add-ons
         add_action( 'gform_loaded', [ $this, 'load_addon' ], 5 );
+        add_filter( 'gform_logging_extensions', 'gfgs_register_logging_extension' );
     }
 
     /**
@@ -58,7 +58,7 @@ final class GF_Google_Sheets {
             add_action( 'admin_notices', static function (): void {
                 	printf(
 					'<div class="notice notice-error"><p>%s</p></div>',
-					esc_html__( 'GF Google Sheets requires Gravity Forms to be installed and active.', GFGS )
+					esc_html__( 'GF Google Sheets requires Gravity Forms to be installed and active.', 'spreadsheet-sync-for-gravity-forms' )
 				);
             } );
             return;
@@ -87,6 +87,15 @@ final class GF_Google_Sheets {
 
         // Stand-alone UI helpers (not a GF add-on, just hooks into WP admin).
         new GFGS_Plugin_Details();
+    }
+
+    /**
+     * Register the logging extension with Gravity Forms.
+     * This makes the plugin show up in Gravity Forms > Settings > Logging.
+     */
+    function gfgs_register_logging_extension( $extensions ) {
+        $extensions['spreadsheet-sync-for-gravity-forms'] = esc_html__( 'Google Sheets Connector', 'spreadsheet-sync-for-gravity-forms' );
+        return $extensions;
     }
 
     /**

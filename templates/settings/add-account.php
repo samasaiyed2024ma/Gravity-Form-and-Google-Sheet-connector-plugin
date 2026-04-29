@@ -18,13 +18,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$is_authorized = ! empty( $pending_account->refresh_token );
-$page_title    = $pending_id
-	? esc_html__( 'Edit Google Account', GFGS )
-	: esc_html__( 'Add New Google Account', GFGS );
-$btn_label     = $is_authorized
-	? esc_html__( 'Save Changes', GFGS )
-	: esc_html__( 'Save & Connect with Google', GFGS );
+$gfgs_is_authorized = ! empty( $pending_account->refresh_token );
+$gfgs_page_title    = $pending_id
+	? esc_html__( 'Edit Google Account', 'spreadsheet-sync-for-gravity-forms' )
+	: esc_html__( 'Add New Google Account', 'spreadsheet-sync-for-gravity-forms' );
+$gfgs_btn_label     = $gfgs_is_authorized
+	? esc_html__( 'Save Changes', 'spreadsheet-sync-for-gravity-forms' )
+	: esc_html__( 'Save & Connect with Google', 'spreadsheet-sync-for-gravity-forms' );
 ?>
 <div class="gfgs-settings-wrap">
 
@@ -32,14 +32,14 @@ $btn_label     = $is_authorized
 		<div class="gfgs-settings-header-inner">
 			<a href="<?php echo esc_url( admin_url( 'admin.php?page=gf_settings&subview=gf-google-sheets' ) ); ?>"
 			   class="gfgs-back-btn"
-			   aria-label="<?php esc_attr_e( 'Back to accounts', GFGS ); ?>">
+			   aria-label="<?php esc_attr_e( 'Back to accounts', 'spreadsheet-sync-for-gravity-forms' ); ?>">
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
 					<path d="M19 12H5M12 19l-7-7 7-7"/>
 				</svg>
 			</a>
 			<div>
-				<h1><?php echo $page_title; ?></h1>
-				<p><?php esc_html_e( 'Connect a Google account to use with Gravity Forms feeds', GFGS ); ?></p>
+				<h1><?php echo esc_html($gfgs_page_title); ?></h1>
+				<p><?php esc_html_e( 'Connect a Google account to use with Gravity Forms feeds', 'spreadsheet-sync-for-gravity-forms' ); ?></p>
 			</div>
 		</div>
 	</div>
@@ -58,20 +58,20 @@ $btn_label     = $is_authorized
 			<!-- Step 1: Account name -->
 			<div class="gfgs-card">
 				<div class="gfgs-card-header">
-					<span class="gfgs-card-step"><?php esc_html_e( 'Step 1', GFGS ); ?></span>
-					<h3><?php esc_html_e( 'Account Details', GFGS ); ?></h3>
+					<span class="gfgs-card-step"><?php esc_html_e( 'Step 1', 'spreadsheet-sync-for-gravity-forms' ); ?></span>
+					<h3><?php esc_html_e( 'Account Details', 'spreadsheet-sync-for-gravity-forms' ); ?></h3>
 				</div>
 				<div class="gfgs-card-body">
 					<div class="gfgs-form-row">
 						<label class="gfgs-label" for="gfgs-account-name">
-							<?php esc_html_e( 'Account Name', GFGS ); ?>
-							<span class="gfgs-hint">(<?php esc_html_e( 'for your reference', GFGS ); ?>)</span>
+							<?php esc_html_e( 'Account Name', 'spreadsheet-sync-for-gravity-forms' ); ?>
+							<span class="gfgs-hint">(<?php esc_html_e( 'for your reference', 'spreadsheet-sync-for-gravity-forms' ); ?>)</span>
 						</label>
 						<input type="text"
 						       id="gfgs-account-name"
 						       class="gfgs-input"
 						       value="<?php echo esc_attr( $pending_account->account_name ?? '' ); ?>"
-						       placeholder="<?php esc_attr_e( 'e.g. My Business Account', GFGS ); ?>">
+						       placeholder="<?php esc_attr_e( 'e.g. My Business Account', 'spreadsheet-sync-for-gravity-forms' ); ?>">
 					</div>
 				</div>
 			</div>
@@ -79,20 +79,20 @@ $btn_label     = $is_authorized
 			<!-- Step 2: OAuth credentials -->
 			<div class="gfgs-card">
 				<div class="gfgs-card-header">
-					<span class="gfgs-card-step"><?php esc_html_e( 'Step 2', GFGS ); ?></span>
-					<h3><?php esc_html_e( 'Google Cloud Credentials', GFGS ); ?></h3>
+					<span class="gfgs-card-step"><?php esc_html_e( 'Step 2', 'spreadsheet-sync-for-gravity-forms' ); ?></span>
+					<h3><?php esc_html_e( 'Google Cloud Credentials', 'spreadsheet-sync-for-gravity-forms' ); ?></h3>
 					<a href="https://console.cloud.google.com/apis/credentials"
 					   target="_blank"
 					   rel="noopener noreferrer"
 					   class="gfgs-card-header-link">
-						<?php esc_html_e( 'Open Google Cloud Console', GFGS ); ?> ↗
+						<?php esc_html_e( 'Open Google Cloud Console', 'spreadsheet-sync-for-gravity-forms' ); ?> ↗
 					</a>
 				</div>
 				<div class="gfgs-card-body">
 
 					<div class="gfgs-form-row">
 						<label class="gfgs-label" for="gfgs-client-id">
-							<?php esc_html_e( 'Client ID', GFGS ); ?>
+							<?php esc_html_e( 'Client ID', 'spreadsheet-sync-for-gravity-forms' ); ?>
 							<span class="gfgs-required" aria-hidden="true">*</span>
 						</label>
 						<input type="text"
@@ -101,13 +101,13 @@ $btn_label     = $is_authorized
 						       value="<?php echo esc_attr( $client_id ); ?>"
 						       placeholder="123456789-abc.apps.googleusercontent.com">
 						<p class="gfgs-field-hint">
-							<?php esc_html_e( 'Found in Google Cloud Console → APIs & Services → Credentials', GFGS ); ?>
+							<?php esc_html_e( 'Found in Google Cloud Console → APIs & Services → Credentials', 'spreadsheet-sync-for-gravity-forms' ); ?>
 						</p>
 					</div>
 
 					<div class="gfgs-form-row">
 						<label class="gfgs-label" for="gfgs-client-secret">
-							<?php esc_html_e( 'Client Secret', GFGS ); ?>
+							<?php esc_html_e( 'Client Secret', 'spreadsheet-sync-for-gravity-forms' ); ?>
 							<span class="gfgs-required" aria-hidden="true">*</span>
 						</label>
 						<div class="gfgs-input-with-toggle">
@@ -118,7 +118,7 @@ $btn_label     = $is_authorized
 							       placeholder="GOCSPX-…">
 							<button type="button"
 							        class="gfgs-toggle-secret"
-							        title="<?php esc_attr_e( 'Show / hide secret', GFGS ); ?>">
+							        title="<?php esc_attr_e( 'Show / hide secret', 'spreadsheet-sync-for-gravity-forms' ); ?>">
 								<svg class="eye-show" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
 									<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
 									<circle cx="12" cy="12" r="3"/>
@@ -132,16 +132,16 @@ $btn_label     = $is_authorized
 
 					<div class="gfgs-form-row">
 						<label class="gfgs-label">
-							<?php esc_html_e( 'Authorized Redirect URI', GFGS ); ?>
+							<?php esc_html_e( 'Authorized Redirect URI', 'spreadsheet-sync-for-gravity-forms' ); ?>
 						</label>
 						<div class="gfgs-copy-box">
 							<code><?php echo esc_html( $redirect_uri ); ?></code>
 							<button type="button" class="gfgs-copy-btn" data-copy="<?php echo esc_attr( $redirect_uri ); ?>">
-								<?php esc_html_e( 'Copy', GFGS ); ?>
+								<?php esc_html_e( 'Copy', 'spreadsheet-sync-for-gravity-forms' ); ?>
 							</button>
 						</div>
 						<p class="gfgs-field-hint">
-							<?php esc_html_e( 'Add this URL to your OAuth 2.0 client Authorized Redirect URIs.', GFGS ); ?>
+							<?php esc_html_e( 'Add this URL to your OAuth 2.0 client Authorized Redirect URIs.', 'spreadsheet-sync-for-gravity-forms' ); ?>
 						</p>
 					</div>
 
@@ -151,20 +151,20 @@ $btn_label     = $is_authorized
 			<!-- Step 3: Connect -->
 			<div class="gfgs-card">
 				<div class="gfgs-card-header">
-					<span class="gfgs-card-step"><?php esc_html_e( 'Step 3', GFGS ); ?></span>
-					<h3><?php esc_html_e( 'Connect & Authorize', GFGS ); ?></h3>
+					<span class="gfgs-card-step"><?php esc_html_e( 'Step 3', 'spreadsheet-sync-for-gravity-forms' ); ?></span>
+					<h3><?php esc_html_e( 'Connect & Authorize', 'spreadsheet-sync-for-gravity-forms' ); ?></h3>
 				</div>
 				<div class="gfgs-card-body">
 
-					<?php if ( $is_authorized ) : ?>
+					<?php if ( $gfgs_is_authorized ) : ?>
 						<div class="gfgs-auth-status gfgs-auth-status--success">
 							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
 								<path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
 								<path d="M22 4L12 14.01l-3-3"/>
 							</svg>
 							<div>
-								<strong><?php esc_html_e( 'Account Authorized', GFGS ); ?></strong>
-								<span><?php esc_html_e( 'This account is connected to Google.', GFGS ); ?></span>
+								<strong><?php esc_html_e( 'Account Authorized', 'spreadsheet-sync-for-gravity-forms' ); ?></strong>
+								<span><?php esc_html_e( 'This account is connected to Google.', 'spreadsheet-sync-for-gravity-forms' ); ?></span>
 							</div>
 						</div>
 					<?php else : ?>
@@ -174,8 +174,8 @@ $btn_label     = $is_authorized
 								<path d="M12 8v4M12 16h.01"/>
 							</svg>
 							<div>
-								<strong><?php esc_html_e( 'Authorization Required', GFGS ); ?></strong>
-								<span><?php esc_html_e( 'Save your credentials, then click Connect with Google to authorize.', GFGS ); ?></span>
+								<strong><?php esc_html_e( 'Authorization Required', 'spreadsheet-sync-for-gravity-forms' ); ?></strong>
+								<span><?php esc_html_e( 'Save your credentials, then click Connect with Google to authorize.', 'spreadsheet-sync-for-gravity-forms' ); ?></span>
 							</div>
 						</div>
 					<?php endif; ?>
@@ -184,11 +184,11 @@ $btn_label     = $is_authorized
 						<button type="button"
 						        id="gfgs-test-btn"
 						        class="gfgs-btn gfgs-btn-outline"
-						        <?php echo $is_authorized ? '' : 'disabled'; ?>>
-							<?php esc_html_e( 'Test Connection', GFGS ); ?>
+						        <?php echo $gfgs_is_authorized ? '' : 'disabled'; ?>>
+							<?php esc_html_e( 'Test Connection', 'spreadsheet-sync-for-gravity-forms' ); ?>
 						</button>
 						<button type="button" id="gfgs-save-connect-btn" class="gfgs-btn gfgs-btn-primary">
-							<?php echo $btn_label; ?>
+							<?php echo esc_html($gfgs_btn_label); ?>
 						</button>
 					</div>
 
@@ -202,40 +202,40 @@ $btn_label     = $is_authorized
 		<!-- Right: Quick setup guide -->
 		<div class="gfgs-add-account-guide">
 			<div class="gfgs-mini-guide">
-				<h4><?php esc_html_e( 'Quick Setup Guide', GFGS ); ?></h4>
+				<h4><?php esc_html_e( 'Quick Setup Guide', 'spreadsheet-sync-for-gravity-forms' ); ?></h4>
 
 				<?php
-				$mini_steps = [
-					[ 'url' => 'https://console.cloud.google.com/projectcreate',                          'label' => __( 'Create a Google Cloud project', GFGS ) ],
-					[ 'url' => 'https://console.cloud.google.com/apis/library/sheets.googleapis.com',    'label' => __( 'Enable Google Sheets API', GFGS ) ],
-					[ 'url' => 'https://console.cloud.google.com/apis/library/drive.googleapis.com',     'label' => __( 'Enable Google Drive API', GFGS ) ],
-					[ 'url' => 'https://console.cloud.google.com/apis/credentials/consent',              'label' => __( 'Configure OAuth Consent Screen', GFGS ) ],
-					[ 'url' => 'https://console.cloud.google.com/apis/credentials',                      'label' => __( 'Create OAuth 2.0 Client ID', GFGS ) ],
-					[ 'url' => null,                                                                      'label' => __( 'Enter credentials here & connect', GFGS ) ],
+				$gfgs_mini_steps = [
+					[ 'url' => 'https://console.cloud.google.com/projectcreate',                          'label' => __( 'Create a Google Cloud project', 'spreadsheet-sync-for-gravity-forms' ) ],
+					[ 'url' => 'https://console.cloud.google.com/apis/library/sheets.googleapis.com',    'label' => __( 'Enable Google Sheets API', 'spreadsheet-sync-for-gravity-forms' ) ],
+					[ 'url' => 'https://console.cloud.google.com/apis/library/drive.googleapis.com',     'label' => __( 'Enable Google Drive API', 'spreadsheet-sync-for-gravity-forms' ) ],
+					[ 'url' => 'https://console.cloud.google.com/apis/credentials/consent',              'label' => __( 'Configure OAuth Consent Screen', 'spreadsheet-sync-for-gravity-forms' ) ],
+					[ 'url' => 'https://console.cloud.google.com/apis/credentials',                      'label' => __( 'Create OAuth 2.0 Client ID', 'spreadsheet-sync-for-gravity-forms' ) ],
+					[ 'url' => null,                                                                      'label' => __( 'Enter credentials here & connect', 'spreadsheet-sync-for-gravity-forms' ) ],
 				];
-				foreach ( $mini_steps as $i => $step ) :
-					$num = $i + 1;
+				foreach ( $gfgs_mini_steps as $gfgs_i => $gfgs_step ) :
+					$gfgs_step_num = $gfgs_i + 1;
 					?>
-					<div class="gfgs-mini-step <?php echo null === $step['url'] ? 'active' : ''; ?>">
-						<?php if ( $step['url'] ) : ?>
-							<a href="<?php echo esc_url( $step['url'] ); ?>" target="_blank" rel="noopener noreferrer" class="gfgs-mini-step-link">
-								<span class="gfgs-mini-num"><?php echo (int) $num; ?></span>
-								<span><?php echo esc_html( $step['label'] ); ?></span>
+					<div class="gfgs-mini-step <?php echo null === $gfgs_step['url'] ? 'active' : ''; ?>">
+						<?php if ( $gfgs_step['url'] ) : ?>
+							<a href="<?php echo esc_url( $gfgs_step['url'] ); ?>" target="_blank" rel="noopener noreferrer" class="gfgs-mini-step-link">
+								<span class="gfgs-mini-num"><?php echo (int) $gfgs_step_num; ?></span>
+								<span><?php echo esc_html( $gfgs_step['label'] ); ?></span>
 							</a>
 						<?php else : ?>
-							<span class="gfgs-mini-num"><?php echo (int) $num; ?></span>
-							<span><?php echo esc_html( $step['label'] ); ?></span>
+							<span class="gfgs-mini-num"><?php echo (int) $gfgs_step_num; ?></span>
+							<span><?php echo esc_html( $gfgs_step['label'] ); ?></span>
 						<?php endif; ?>
 					</div>
 				<?php endforeach; ?>
 			</div>
 
 			<div class="gfgs-mini-guide gfgs-mini-guide-tip" style="margin-top:16px;">
-				<h4>💡 <?php esc_html_e( 'Tips', GFGS ); ?></h4>
+				<h4>💡 <?php esc_html_e( 'Tips', 'spreadsheet-sync-for-gravity-forms' ); ?></h4>
 				<ul>
-					<li><?php esc_html_e( 'Set OAuth consent screen to External for personal accounts', GFGS ); ?></li>
-					<li><?php esc_html_e( 'Add yourself as a Test User while the app is unverified', GFGS ); ?></li>
-					<li><?php esc_html_e( 'The Authorized Redirect URI must match exactly — copy it using the button', GFGS ); ?></li>
+					<li><?php esc_html_e( 'Set OAuth consent screen to External for personal accounts', 'spreadsheet-sync-for-gravity-forms' ); ?></li>
+					<li><?php esc_html_e( 'Add yourself as a Test User while the app is unverified', 'spreadsheet-sync-for-gravity-forms' ); ?></li>
+					<li><?php esc_html_e( 'The Authorized Redirect URI must match exactly — copy it using the button', 'spreadsheet-sync-for-gravity-forms' ); ?></li>
 				</ul>
 			</div>
 		</div><!-- .gfgs-add-account-guide -->

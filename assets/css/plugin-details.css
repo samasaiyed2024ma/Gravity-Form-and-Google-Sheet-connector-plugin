@@ -45,6 +45,7 @@
     flex-direction: column;
     border-right: 1pxx solid #ddd;
     overflow-y: auto;
+	margin: 20px 0px;
 }
 
 /* ── Header ────────────────────────────────── */
@@ -128,7 +129,7 @@
 
 /* ── Body ──────────────────────────────────── */
 .gfgs-modal-body {
-    padding: 24px;
+    padding: 0px 24px;
 }
 
 .gfgs-tab-content {

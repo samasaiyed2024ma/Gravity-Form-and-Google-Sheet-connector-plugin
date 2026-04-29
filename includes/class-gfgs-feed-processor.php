@@ -220,7 +220,7 @@ class GFGS_Feed_Processor{
 				'GF Google Sheets',
 				sprintf(
 					/* translators: 1: feed name, 2: error message */
-					__( 'Error sending to Google Sheets (Feed: %1$s): %2$s', GFGS ),
+					__( 'Error sending to Google Sheets (Feed: %1$s): %2$s', 'spreadsheet-sync-for-gravity-forms' ),
 					$feed->feed_name,
 					$result->get_error_message()
 				),
@@ -236,7 +236,7 @@ class GFGS_Feed_Processor{
 				'GF Google Sheets',
 				sprintf(
 					/* translators: %s: feed name */
-					__( 'Entry sent to Google Sheets (Feed: %s)', GFGS ),
+					__( 'Entry sent to Google Sheets (Feed: %s)', 'spreadsheet-sync-for-gravity-forms' ),
 					$feed->feed_name
 				),
 				'success'
@@ -290,7 +290,7 @@ class GFGS_Feed_Processor{
 		}
  
 		if ( 0 === $sent && null !== $feed_id ) {
-			return new WP_Error( 'no_feed', __( 'Feed not found or is inactive.', GFGS ) );
+			return new WP_Error( 'no_feed', __( 'Feed not found or is inactive.', 'spreadsheet-sync-for-gravity-forms' ) );
 		}
  
 		return [ 'sent' => $sent, 'errors' => $errors ];

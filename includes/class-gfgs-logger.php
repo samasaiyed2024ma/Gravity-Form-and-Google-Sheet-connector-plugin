@@ -69,9 +69,20 @@ class GFGS_Logger {
 	 * @return void
 	 */
 	private static function write( string $level, string $message ): void {
-		// Only log to error_log when WP_DEBUG_LOG is on.
-		if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-			error_log( sprintf( '%s [%s] %s', self::PREFIX, strtoupper( $level ), $message ) );
-		}
-	}
+        // 1. Check if Gravity Forms Logging is active.
+        if ( ! class_exists( 'GFLogging' ) ) {
+            return;
+        }
+
+        // 2. Ensure the logger is loaded.
+        GFLogging::include_logger();
+
+        // 3. Map your internal levels to GF levels.
+        // GF typically uses: Gravity_Forms_Logging::LOG_LEVEL_ERROR, etc.
+        // But passing 'error' or 'info' as a string is also supported.
+        $gf_level = ( 'error' === $level ) ? 'error' : 'info';
+
+        // 4. Log it.
+        GFLogging::log_message( 'spreadsheet-sync-for-gravity-forms', self::PREFIX . ' ' . $message, $gf_level );
+    }
 }
