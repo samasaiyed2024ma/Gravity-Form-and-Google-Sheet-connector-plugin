@@ -426,6 +426,88 @@ class GFGS_Database {
 	}
 
 	/**
+	 * Delete all feeds of specific form at once
+	 * 
+	 * Cache invalidated: All gfgs_feed_{id} for this form, and gfgs_feeds_form_{form_id}
+	 *
+	 * @param int $form_id Form ID.
+	 *
+	 * @return void
+	 */
+	public static function delete_all_feeds( $form_id ) {
+		global $wpdb;
+
+		$form_id = (int) $form_id;
+
+		if(!$form_id){
+			return;
+		}
+
+		// Get the current feeds for this form.
+		$feeds = self::get_feeds_by_form($form_id);
+
+		$table = $wpdb->prefix . self::FEEDS_TABLE;
+
+		// Perform the bulk deletion in the database.
+		$wpdb->delete(
+			$table, 
+			array('form_id' => $form_id), 
+			array('%d') 
+		); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+
+		// Clear the form-level cache bucket.
+		wp_cache_delete( 'gfgs_feeds_form_' . $form_id, self::CACHE_GROUP );
+
+		// 4. Loop through the feeds we retrieved and clear their individual cache entries.
+		if ( is_array( $feeds ) ) {
+			foreach ( $feeds as $feed ) {
+				// Since decode_feed usually returns an object or array, extract the ID.
+				$feed_id = is_object( $feed ) ? $feed->id : $feed['id'];
+				
+				if ( $feed_id ) {
+					wp_cache_delete( 'gfgs_feed_' . (int) $feed_id, self::CACHE_GROUP );
+				}
+			}
+		}
+
+	}
+
+	/**
+	 * Delete specific feeds
+	 * 
+	 * @param array $ids Feed IDs
+	 * 
+	 * @return void
+	 */
+	public static function deleted_selected_feeds( $ids ){
+		global $wpdb;
+
+		$table = $wpdb->prefix . self::FEEDS_TABLE;
+
+		// Fetch the feeds first so we know which form caches to clear
+		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+		$feeds = $wpdb->get_results( $wpdb->prepare( "SELECT id, form_id FROM $table WHERE id IN ($placeholders)", $ids ) );
+
+		if ( ! $feeds ) return;
+
+		// Delete the rows
+		$wpdb->query( $wpdb->prepare( "DELETE FROM $table WHERE id IN ($placeholders)", $ids ) );
+
+		$form_ids = array();
+		foreach ( $feeds as $feed ) {
+			// Clear individual feed cache
+			wp_cache_delete( 'gfgs_feed_' . (int) $feed->id, self::CACHE_GROUP );
+			$form_ids[] = (int) $feed->form_id;
+		}
+
+		// Clear form-level caches for all affected forms
+		foreach ( array_unique( $form_ids ) as $f_id ) {
+			wp_cache_delete( 'gfgs_feeds_form_' . $f_id, self::CACHE_GROUP );
+		}
+	}
+
+
+	/**
 	 * Toggle a feed's active state.
 	 *
 	 * Cache invalidated: gfgs_feed_{id}, gfgs_feeds_form_{form_id}

@@ -154,9 +154,18 @@
 				'<button class="gfgs-btn gfgs-btn-primary" id="gfgs-add-feed-empty">Create Your First Feed</button>' +
 				'</div>';
 		} else {
-			html += '<div class="gfgs-table-wrap"><table class="gfgs-table">' +
+			html += '<div class="gfgs-bulk-actions">' +
+				'<select id="gfgs-bulk-action-selector">' +
+				'<option value="bulk_actions"> Bulk Actions </option>' +
+				'<option value="delete_selected_feeds"> Deleted Selected Feeds </option>' +
+				'<option value="delete_all_feeds"> Deleted All Feeds </option>' +
+				'</select>' +
+				'<button type="button" id="gfgs-apply-bulk-action" class="apply-btn"> Apply </button>' +
+				'</div>' +
+				
+				'<div class="gfgs-table-wrap"><table class="gfgs-table">' +
 				'<thead><tr>' +
-				'<th>Status</th><th>Feed Name</th><th>Spreadsheet / Sheet</th><th>Send On</th>' +
+				'<th><input type="checkbox" id="gfgs-select-all"></th><th>Status</th><th>Feed Name</th><th>Spreadsheet / Sheet</th><th>Send On</th>' +
 				'</tr></thead><tbody>';
 
 			state.feeds.forEach( function ( feed ) {
@@ -166,6 +175,9 @@
 					: '<span class="gfgs-muted">\u2014</span>';
 
 				html += '<tr data-feed-id="' + feed.id + '">' +
+					'<td>' + 
+						'<input type="checkbox" class="gfgs-feed-checkbox" value="'+ feed.id +'">' +
+					'</td>' +
 					'<td>' +
 						'<button class="gfgs-status-badge ' + ( feed.is_active ? 'gfgs-status-active' : 'gfgs-status-inactive' ) + ' gfgs-toggle-feed"' +
 							' data-id="' + feed.id + '" data-active="' + ( feed.is_active ? 1 : 0 ) + '">' +
@@ -239,6 +251,57 @@
 				renderFeedList();
 			} );
 		} );
+
+		$app.on( 'change', '#gfgs-select-all', function () {
+			$( '.gfgs-feed-checkbox' ).prop( 'checked', $( this ).prop( 'checked' ) );
+		} );
+
+		$app.on( 'click', '#gfgs-apply-bulk-action', function(){
+			var action = $('#gfgs-bulk-action-selector').val();
+
+			if(!action){
+				alert('Please select an action.');
+				return;
+			}
+
+			var payload = {
+				bulk_action: action,
+				form_id: state.formId
+			};
+
+			//If deleting selected, gather the IDs from checkboxes
+			if(action === 'delete_selected_feeds'){
+				var selectedIds = [];
+				$('.gfgs-feed-checkbox:checked').each(function(){
+					selectedIds.push($(this).val());
+				});
+
+				if(selectedIds.length === 0){
+					alert('No feeds selected.');
+					return;
+				}
+
+				payload.feed_ids = selectedIds;
+			}
+
+			if(!confirm('Are you sure you want to perform this action?')){
+				return;
+			}
+
+			feedAjax('gfgs_bulk_action', payload, function(response){
+				if(action === 'delete_all_feeds'){
+					state.feeds = [];
+				}else{
+					state.feeds = state.feeds.filter(function(f){
+						return !payload.feed_ids.includes(f.id.toString());
+					});
+				}
+
+				state.notice = {type: 'success', msg: response.data.message};
+				renderFeedList();
+			});
+		} );
+
 
 		$app.on( 'click', '.gfgs-toggle-feed', function () {
 			var $btn      = $( this );

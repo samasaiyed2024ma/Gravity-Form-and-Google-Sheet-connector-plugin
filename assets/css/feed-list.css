@@ -234,3 +234,29 @@
 .gfgs-action-delete:hover{
     color: #cf0306;
 }
+
+.gfgs-bulk-actions{
+    display: flex;
+    column-gap: 10px;
+    justify-content: flex-start;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.gfgs-bulk-actions .apply-btn{
+    padding: 7px 16px;
+    border-radius: 6px;
+    font-size: .875rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    border: 1px solid #1558a0;
+    transition: all .2s;
+    line-height: 1;
+    background: none;
+    color: #1558a0;
+}
+
+.gfgs-bulk-actions .apply-btn:hover{
+	background: #ebebeb78;
+}

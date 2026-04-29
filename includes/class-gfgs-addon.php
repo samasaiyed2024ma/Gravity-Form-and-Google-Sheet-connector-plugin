@@ -249,6 +249,7 @@ class GFGS_Addon extends GFFeedAddOn {
 			'gfgs_delete_account'     => 'ajax_delete_account',
 			'gfgs_save_feed'          => 'ajax_save_feed',
 			'gfgs_delete_feed'        => 'ajax_delete_feed',
+			'gfgs_bulk_action'        => 'ajax_bulk_action',
 			'gfgs_duplicate_feed'     => 'ajax_duplicate_feed',
 			'gfgs_toggle_feed'        => 'ajax_toggle_feed',
 			'gfgs_test_connection'    => 'ajax_test_connection',
@@ -991,6 +992,45 @@ class GFGS_Addon extends GFFeedAddOn {
 		GFGS_Database::delete_feed( $feed_id );
 
 		wp_send_json_success();
+	}
+
+	/**
+	 * AJAX: Handle bulk actions from the dropdown
+	 * 
+	 * @return void
+	 */
+	public function ajax_bulk_action(){
+		$this->verify_ajax();
+
+		// phpcs:disable WordPress.Security.NonceVerification.Missing
+		$action = isset($_POST['bulk_action']) ? sanitize_text_field($_POST['bulk_action']) : '';
+		$form_id = isset($_POST['form_id']) ? absint($_POST['form_id']) : 0;
+		$feed_ids = isset( $_POST['feed_ids'] ) ? array_map( 'absint', (array) $_POST['feed_ids'] ) : array();
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+		switch($action){
+			case 'delete_selected_feeds':
+				if(empty($feed_ids)){
+					wp_send_json_error(array('message' => 'No feeds selected'));
+				}
+
+				GFGS_Database::deleted_selected_feeds($feed_ids);
+				wp_send_json_success( array( 'message' => 'Selected feeds deleted.' ) );
+            	break;
+			
+		case 'delete_all_feeds':
+            if ( ! $form_id ) {
+                wp_send_json_error( array( 'message' => 'Invalid Form ID.' ) );
+            }
+            // Logic to delete everything for this form
+            GFGS_Database::delete_all_feeds( $form_id );
+            wp_send_json_success( array( 'message' => 'All feeds deleted.' ) );
+            break;
+
+        default:
+            wp_send_json_error( array( 'message' => 'Unknown action.' ) );
+            break;
+		}
 	}
 
 	/**
