@@ -449,11 +449,12 @@ class GFGS_Database {
 		$table = $wpdb->prefix . self::FEEDS_TABLE;
 
 		// Perform the bulk deletion in the database.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$wpdb->delete(
 			$table, 
 			array('form_id' => $form_id), 
 			array('%d') 
-		); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+		);
 
 		// Clear the form-level cache bucket.
 		wp_cache_delete( 'gfgs_feeds_form_' . $form_id, self::CACHE_GROUP );
@@ -479,19 +480,27 @@ class GFGS_Database {
 	 * 
 	 * @return void
 	 */
-	public static function deleted_selected_feeds( $ids ){
+	public static function delete_selected_feeds( $ids ){
 		global $wpdb;
 
+		$ids = array_filter( array_map( 'intval', (array) $ids ) );
+
+		if ( empty( $ids ) ) {
+			return;
+		}
+		
 		$table = $wpdb->prefix . self::FEEDS_TABLE;
 
-		// Fetch the feeds first so we know which form caches to clear
-		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
-		$feeds = $wpdb->get_results( $wpdb->prepare( "SELECT id, form_id FROM $table WHERE id IN ($placeholders)", $ids ) );
+		// Fetch feeds before deletion so related cache keys can be invalidated.
+		// Caching this lookup is unnecessary because rows are deleted immediately after.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$feeds = $wpdb->get_results( $wpdb->prepare( "SELECT id, form_id FROM " . esc_sql($table) . " WHERE id IN (" . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ")", $ids ) );
 
 		if ( ! $feeds ) return;
 
 		// Delete the rows
-		$wpdb->query( $wpdb->prepare( "DELETE FROM $table WHERE id IN ($placeholders)", $ids ) );
+	    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+		$wpdb->query( $wpdb->prepare( "DELETE FROM " . esc_sql($table) . " WHERE id IN (" . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ")", $ids ) );
 
 		$form_ids = array();
 		foreach ( $feeds as $feed ) {

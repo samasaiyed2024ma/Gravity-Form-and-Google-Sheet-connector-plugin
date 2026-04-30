@@ -623,12 +623,12 @@ class GFGS_Addon extends GFFeedAddOn {
 		$this->render_template(
 			'entry/meta-box',
 			array(
-				'entry'        => $entry,
-				'feeds'        => $feeds,
-				'active_feeds' => $active_feeds,
+				'gfgs_entry'        => $entry,
+				'gfgs_feeds'        => $feeds,
+				'gfgs_active_feeds' => $active_feeds,
 				'nonce'        => wp_create_nonce( 'gfgs_manual_send_' . $entry['id'] ),
 			)
-		);
+		); 
 	}
 
 	// ── Helper: field list for JS ─────────────────────────────────────────────
@@ -1076,7 +1076,7 @@ class GFGS_Addon extends GFFeedAddOn {
 		$this->verify_ajax();
 
 		// phpcs:disable WordPress.Security.NonceVerification.Missing
-		$action   = isset( $_POST['bulk_action'] ) ? sanitize_text_field( $_POST['bulk_action'] ) : '';
+		$action   = isset( $_POST['bulk_action'] ) ? sanitize_text_field( wp_unslash($_POST['bulk_action']) ) : '';
 		$form_id  = isset( $_POST['form_id'] )     ? absint( $_POST['form_id'] )                  : 0;
 		$feed_ids = isset( $_POST['feed_ids'] )    ? array_map( 'absint', (array) $_POST['feed_ids'] ) : array();
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
@@ -1086,7 +1086,7 @@ class GFGS_Addon extends GFFeedAddOn {
 				if ( empty( $feed_ids ) ) {
 					wp_send_json_error( array( 'message' => 'No feeds selected.' ) );
 				}
-				GFGS_Database::deleted_selected_feeds( $feed_ids );
+				GFGS_Database::delete_selected_feeds( $feed_ids );
 				wp_send_json_success( array( 'message' => 'Selected feeds deleted.' ) );
 				break;
 
