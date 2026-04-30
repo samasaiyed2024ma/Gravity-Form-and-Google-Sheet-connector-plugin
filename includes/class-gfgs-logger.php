@@ -35,7 +35,7 @@ class GFGS_Logger {
 	 * @param  string $message Human-readable message.
 	 * @return void
 	 */
-	public static function debug( string $message ): void {
+	public static function debug( $message ) {
 		self::write( 'debug', $message );
 	}
 
@@ -45,7 +45,7 @@ class GFGS_Logger {
 	 * @param  string $message Human-readable message.
 	 * @return void
 	 */
-	public static function notice( string $message ): void {
+	public static function notice( $message ) {
 		self::write( 'notice', $message );
 	}
 
@@ -55,7 +55,7 @@ class GFGS_Logger {
 	 * @param  string $message Human-readable message.
 	 * @return void
 	 */
-	public static function error( string $message ): void {
+	public static function error( $message ) {
 		self::write( 'error', $message );
 	}
 
@@ -68,7 +68,7 @@ class GFGS_Logger {
 	 * @param  string $message Log content.
 	 * @return void
 	 */
-	private static function write( string $level, string $message ): void {
+	private static function write( $level, $message ) {
         // 1. Check if Gravity Forms Logging is active.
         if ( ! class_exists( 'GFLogging' ) ) {
             return;

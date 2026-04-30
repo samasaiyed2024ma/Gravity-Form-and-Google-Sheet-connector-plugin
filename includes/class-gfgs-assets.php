@@ -91,7 +91,7 @@ class GFGS_Assets {
 	 *
 	 * @return void
 	 */
-	public function register_hooks(): void {
+	public function register_hooks() {
 		add_action( 'admin_enqueue_scripts', [ $this, 'register_assets' ] );
 	}
 
@@ -103,7 +103,7 @@ class GFGS_Assets {
 	 *
 	 * @return void
 	 */
-	public function register_assets(): void {
+	public function register_assets() {
 		foreach ( self::STYLES as $handle => $file ) {
 			wp_register_style(
 				$handle,
@@ -131,7 +131,7 @@ class GFGS_Assets {
 	 *
 	 * @return void
 	 */
-	public static function enqueue_admin_assets(): void {
+	public static function enqueue_admin_assets() {
 		foreach ( self::COMMON_STYLES as $handle ) {
 			wp_enqueue_style( $handle );
 		}

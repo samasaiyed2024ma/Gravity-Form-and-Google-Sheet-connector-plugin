@@ -6,7 +6,7 @@
  * Author: Mervan Agency
  * Text Domain: spreadsheet-sync-for-gravity-forms
  * License: GPL v2 or later
- * License URI: http://www.gnu.org/licenses/gpl-2.0.txt
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.txt
  * Requires PHP: 7.4
  */
 
@@ -28,7 +28,7 @@ final class GF_Google_Sheets {
 	/** @var GF_Google_Sheets|null Singleton instance. */
 	private static ?GF_Google_Sheets $instance = null;
 
-    public static function instance(): GF_Google_Sheets{
+    public static function instance(){
         if ( null === self::$instance ) {
             self::$instance = new self();
         }
@@ -44,7 +44,7 @@ final class GF_Google_Sheets {
 
         // Priority 5 ensures we run before other add-ons
         add_action( 'gform_loaded', [ $this, 'load_addon' ], 5 );
-        add_filter( 'gform_logging_extensions', 'gfgs_register_logging_extension' );
+        add_filter( 'gform_logging_extensions', [$this, 'gfgs_register_logging_extension'] );
     }
 
     /**
@@ -53,9 +53,9 @@ final class GF_Google_Sheets {
      * 
 	 * @return void
 	 */
-    public function load_addon(): void {
+    public function load_addon() {
         if ( ! class_exists( 'GFForms' ) ) {
-            add_action( 'admin_notices', static function (): void {
+            add_action( 'admin_notices', static function () {
                 	printf(
 					'<div class="notice notice-error"><p>%s</p></div>',
 					esc_html__( 'GF Google Sheets requires Gravity Forms to be installed and active.', 'spreadsheet-sync-for-gravity-forms' )
@@ -92,8 +92,11 @@ final class GF_Google_Sheets {
     /**
      * Register the logging extension with Gravity Forms.
      * This makes the plugin show up in Gravity Forms > Settings > Logging.
+     * 
+     * @param  array<string, string> $extensions Existing extensions keyed by slug.
+     * @return array<string, string>
      */
-    function gfgs_register_logging_extension( $extensions ) {
+    public function gfgs_register_logging_extension( $extensions ) {
         $extensions['spreadsheet-sync-for-gravity-forms'] = esc_html__( 'Google Sheets Connector', 'spreadsheet-sync-for-gravity-forms' );
         return $extensions;
     }
@@ -103,7 +106,7 @@ final class GF_Google_Sheets {
      * 
 	 * @return void
 	 */
-    public function activate(): void {
+    public function activate() {
         require_once GFGS_PLUGIN_DIR . 'includes/class-gfgs-database.php';
         GFGS_Database::create_tables();
     }
@@ -116,7 +119,7 @@ final class GF_Google_Sheets {
 	 *
 	 * @return void
 	 */
-    public function deactivate(): void {}
+    public function deactivate() {}
 }
 
 // Boot the plugin.

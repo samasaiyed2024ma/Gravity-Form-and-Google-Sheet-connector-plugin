@@ -45,7 +45,7 @@ class GFGS_Plugin_Details {
 	 * @param  string   $file  Plugin basename of the current row.
 	 * @return string[]        Modified meta links.
 	 */
-	public function add_plugin_meta_links( array $links, string $file ): array {
+	public function add_plugin_meta_links( $links, $file ) {
 		if ( $file !== GFGS_PLUGIN_BASENAME ) {
 			return $links;
 		}
@@ -72,7 +72,7 @@ class GFGS_Plugin_Details {
 	 * @param  string $hook Current admin page hook suffix.
 	 * @return void
 	 */
-	public function enqueue_assets( string $hook ): void {
+	public function enqueue_assets( $hook ) {
 		if ( 'plugins.php' !== $hook ) {
 			return;
 		}
@@ -104,7 +104,7 @@ class GFGS_Plugin_Details {
 	 *
 	 * @return void
 	 */
-	public function render_modal(): void {
+	public function render_modal() {
 		$screen = get_current_screen();
 
 		if ( ! $screen || 'plugins' !== $screen->id ) {
@@ -139,7 +139,7 @@ class GFGS_Plugin_Details {
 	 *
 	 * @return void
 	 */
-	private function render_header(): void {
+	private function render_header() {
 		?>
 		<div class="gfgs-modal-header">
 			<div class="gfgs-modal-title">
@@ -172,7 +172,7 @@ class GFGS_Plugin_Details {
 	 *
 	 * @return void
 	 */
-	private function render_tabs(): void {
+	private function render_tabs() {
 		?>
 		<div class="gfgs-modal-tabs">
 			<?php foreach ( $this->get_tabs() as $key => $label ) : ?>
@@ -193,7 +193,7 @@ class GFGS_Plugin_Details {
 	 *
 	 * @return void
 	 */
-	private function render_sidebar(): void {
+	private function render_sidebar() {
 		$meta_rows = [
 			__( 'Version:', 'spreadsheet-sync-for-gravity-forms' )            => esc_html( GFGS_VERSION ),
 			__( 'Author:', 'spreadsheet-sync-for-gravity-forms' )              => '<a href="https://mervanagency.io" target="_blank" rel="noopener noreferrer">Mervan Agency</a>',
@@ -235,7 +235,7 @@ class GFGS_Plugin_Details {
 	 *
 	 * @return void
 	 */
-	private function render_tab_description(): void {
+	private function render_tab_description() {
 		$features = [
 			__( 'Connect multiple Google accounts', 'spreadsheet-sync-for-gravity-forms' ),
 			__( 'Map any form field to any sheet column', 'spreadsheet-sync-for-gravity-forms' ),
@@ -291,7 +291,7 @@ class GFGS_Plugin_Details {
 	 *
 	 * @return void
 	 */
-	private function render_tab_installation(): void {
+	private function render_tab_installation() {
 		$steps = [
 			[
 				'title' => __( 'Upload & Activate', 'spreadsheet-sync-for-gravity-forms' ),
@@ -347,7 +347,7 @@ class GFGS_Plugin_Details {
 	 *
 	 * @return void
 	 */
-	private function render_tab_faq(): void {
+	private function render_tab_faq() {
 		$faqs = [
 			[
 				'q' => __( 'Does this plugin require Gravity Forms?', 'spreadsheet-sync-for-gravity-forms' ),
@@ -400,7 +400,7 @@ class GFGS_Plugin_Details {
 	 *
 	 * @return void
 	 */
-	private function render_tab_changelog(): void {
+	private function render_tab_changelog() {
 		$changelog = [
 			[
 				'version' => '1.0.0',
@@ -448,7 +448,7 @@ class GFGS_Plugin_Details {
 	 *
 	 * @return array<string, string>
 	 */
-	private function get_tabs(): array {
+	private function get_tabs() {
 		return [
 			'description'  => __( 'Description', 'spreadsheet-sync-for-gravity-forms' ),
 			'installation' => __( 'Installation', 'spreadsheet-sync-for-gravity-forms' ),

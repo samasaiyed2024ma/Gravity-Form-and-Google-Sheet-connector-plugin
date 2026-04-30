@@ -61,7 +61,7 @@ class GFGS_Feed_Processor{
 	 * @param  array $form  GF form array.
 	 * @return void
 	 */
-	public function on_form_submit( array $entry, array $form ): void {
+	public function on_form_submit( $entry, $form ) {
 		$this->process_form_feeds( $entry, $form, 'form_submit' );
 	}
 
@@ -80,16 +80,7 @@ class GFGS_Feed_Processor{
 	 * @param  array|false $entry         GF entry array or false.
 	 * @return void
 	 */
-    public function on_after_send_email(
-		bool $is_success,
-		string $to,
-		string $from,
-		string $subject,
-		string $message,
-		array $headers,
-		array $attachments,
-		$entry
-	): void {
+    public function on_after_send_email( $is_success, $to, $from, $subject, $message, $headers, $attachments, $entry ) {
 		if ( ! $entry ) {
 			return;
 		}
@@ -105,7 +96,7 @@ class GFGS_Feed_Processor{
 	 * @param  array $action Payment action data.
 	 * @return void
 	 */
-	public function on_payment_completed( array $entry, array $action ): void {
+	public function on_payment_completed( $entry, $action ) {
 		$form = GFAPI::get_form( $entry['form_id'] );
 		$this->process_form_feeds( $entry, $form, 'payment_completed' );
 	}
@@ -117,7 +108,7 @@ class GFGS_Feed_Processor{
 	 * @param  array $action Payment action data.
 	 * @return void
 	 */
-	public function on_payment_refunded( array $entry, array $action ): void {
+	public function on_payment_refunded( $entry, $action ) {
 		$form = GFAPI::get_form( $entry['form_id'] );
 		$this->process_form_feeds( $entry, $form, 'payment_refunded' );
 	}
@@ -131,7 +122,7 @@ class GFGS_Feed_Processor{
 	 * @param  float  $amount         Transaction amount.
 	 * @return void
 	 */
-	public function on_fulfillment( array $entry, array $feed, string $transaction_id, float $amount ): void {
+	public function on_fulfillment( $entry, $feed, $transaction_id, $amount ) {
 		$form = GFAPI::get_form( $entry['form_id'] );
 		$this->process_form_feeds( $entry, $form, 'payment_fulfilled' );
 	}
@@ -144,7 +135,7 @@ class GFGS_Feed_Processor{
 	 * @param  array $original_entry Entry data before the update.
 	 * @return void
 	 */
-	public function on_entry_updated( array $form, int $entry_id, array $original_entry ): void {
+	public function on_entry_updated( $form, $entry_id, $original_entry ) {
 		$entry = GFAPI::get_entry( $entry_id );
 		if ( is_wp_error( $entry ) ) {
 			GFGS_Logger::error( "on_entry_updated: could not retrieve entry #{$entry_id}" );
@@ -164,7 +155,7 @@ class GFGS_Feed_Processor{
 	 * @param  string $event send_event slug (e.g. 'form_submit').
 	 * @return void
 	 */
-	public function process_form_feeds( array $entry, array $form, string $event ): void {
+	public function process_form_feeds( $entry, $form, $event ) {
 		$feeds = GFGS_Database::get_feeds_by_form( (int) $form['id'] );
  
 		foreach ( $feeds as $feed ) {
@@ -182,9 +173,9 @@ class GFGS_Feed_Processor{
 	 * @param  object $feed  Decoded feed row object from GFGS_Database.
 	 * @param  array  $entry GF entry array.
 	 * @param  array  $form  GF form array.
-	 * @return void
+	 * @return bool
 	 */
-	public function process_single_feed( object $feed, array $entry, array $form ): bool {
+	public function process_single_feed( $feed, $entry, $form ) {
 		$conditions  = is_array( $feed->conditions )  ? $feed->conditions  : [];
 		$field_map   = is_array( $feed->field_map )   ? $feed->field_map   : [];
 		$date_formats = is_array( $feed->date_formats ) ? $feed->date_formats : [];
@@ -255,7 +246,7 @@ class GFGS_Feed_Processor{
 	 * @param  int|null $feed_id  Specific feed ID, or null to send to all active feeds.
 	 * @return array|WP_Error  Array {sent: int, errors: string[]} or WP_Error if entry not found.
 	 */
-	public static function manual_send( int $entry_id, ?int $feed_id = null ) {
+	public static function manual_send( $entry_id, $feed_id = null ) {
 		$entry = GFAPI::get_entry( $entry_id );
  
 		if ( is_wp_error( $entry ) ) {

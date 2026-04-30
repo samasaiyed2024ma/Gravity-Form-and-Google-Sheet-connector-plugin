@@ -70,7 +70,7 @@ class GFGS_Google_API{
 	 * @param  int|string $state     Value passed through OAuth to identify the pending account.
 	 * @return string  Full authorisation URL.
 	 */
-    public static function build_auth_url( string $client_id, string $redirect_uri, $state = '' ): string {
+    public static function build_auth_url( $client_id, $redirect_uri, $state = '' ) {
         $params = [
             'client_id'     => $client_id,
 			'redirect_uri'  => $redirect_uri,
@@ -95,7 +95,7 @@ class GFGS_Google_API{
 	 * @param  string $redirect_uri  Must match the URI used to generate the auth URL.
 	 * @return array|WP_Error Token payload on success, WP_Error on failure.
 	 */
-    public function exchange_code(string $code, string $client_id, string $client_secret, string $redirect_uri) {
+    public function exchange_code( $code, $client_id, $client_secret, $redirect_uri) {
 		$response = wp_remote_post(
 			self::OAUTH_TOKEN_URL,
 			[
@@ -122,7 +122,7 @@ class GFGS_Google_API{
 	 * @param  string $client_secret OAuth client secret.
 	 * @return array|WP_Error New token payload on success, WP_Error on failure.
 	 */
-   	public function refresh_token(string $refresh_token, string $client_id, string $client_secret) {
+   	public function refresh_token( $refresh_token, $client_id, $client_secret) {
 		$response = wp_remote_post(
 			self::OAUTH_TOKEN_URL,
 			[
@@ -146,7 +146,7 @@ class GFGS_Google_API{
 	 * @param  string       $access_token A valid access token.
 	 * @return array|WP_Error User-info payload on success, WP_Error on failure.
 	 */
-	public function get_user_info( string $access_token ) {
+	public function get_user_info( $access_token ) {
 		$response = wp_remote_get(
 			self::USERINFO_URL,
 			[
@@ -170,7 +170,7 @@ class GFGS_Google_API{
 	 * @param  int          $account_id Account ID from the gfgs_accounts table.
 	 * @return string|WP_Error  Valid access token string, or WP_Error on failure.
 	 */
-	public function get_valid_token( int $account_id ) {
+	public function get_valid_token( $account_id ) {
 		$account = GFGS_Database::get_account( $account_id );
  
 		if ( ! $account ) {
@@ -219,7 +219,7 @@ class GFGS_Google_API{
 	 * @param  int          $account_id Account ID.
 	 * @return array|WP_Error Array of {id, name} objects, or WP_Error.
 	 */
-	public function list_spreadsheets( int $account_id ) {
+	public function list_spreadsheets( $account_id ) {
 		$token = $this->get_valid_token( $account_id );
 		if ( is_wp_error( $token ) ) {
 			return $token;
@@ -249,7 +249,7 @@ class GFGS_Google_API{
 	 * @param  string       $spreadsheet_id Google Sheets file ID.
 	 * @return array|WP_Error  Array of {id, title} maps, or WP_Error.
 	 */
-    public function get_spreadsheet_sheets( int $account_id, string $spreadsheet_id ) {
+    public function get_spreadsheet_sheets( $account_id, $spreadsheet_id ) {
 		$token = $this->get_valid_token( $account_id );
 		if ( is_wp_error( $token ) ) {
 			return $token;
@@ -282,7 +282,7 @@ class GFGS_Google_API{
 	 * @param  string       $sheet_name     Name of the sheet (tab).
 	 * @return array|WP_Error  Flat array of header strings, or WP_Error.
 	 */
-	public function get_sheet_headers( int $account_id, string $spreadsheet_id, string $sheet_name ) {
+	public function get_sheet_headers( $account_id, $spreadsheet_id, $sheet_name ) {
 		$token = $this->get_valid_token( $account_id );
 		if ( is_wp_error( $token ) ) {
 			return $token;
@@ -312,7 +312,7 @@ class GFGS_Google_API{
 	 * @param  array  $row            Flat array of cell values (column-ordered).
 	 * @return array|WP_Error  API response payload, or WP_Error on failure.
 	 */
-	public function append_row( int $account_id, string $spreadsheet_id, string $sheet_name, array $row ) {
+	public function append_row( $account_id, $spreadsheet_id, $sheet_name, $row ) {
 		$token = $this->get_valid_token( $account_id );
 		if ( is_wp_error( $token ) ) {
 			return $token;
@@ -343,7 +343,7 @@ class GFGS_Google_API{
 	 * @param  string $access_token Valid Google access token.
 	 * @return array<string, string>
 	 */
-    private function auth_headers( string $access_token ): array {
+    private function auth_headers( $access_token ) {
 		return [ 'Authorization' => 'Bearer ' . $access_token ];
 	}
 

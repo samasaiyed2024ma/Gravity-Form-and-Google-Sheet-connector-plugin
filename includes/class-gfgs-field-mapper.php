@@ -102,12 +102,7 @@ class GFGS_Field_Mapper {
 	 * @param  array  $date_formats Optional map of column → PHP date format string.
 	 * @return array<string, string>  column => resolved value.
 	 */
-	public static function build_row(
-		array $field_map,
-		array $entry,
-		array $form,
-		array $date_formats = []
-	): array {
+	public static function build_row( $field_map, $entry, $form, $date_formats = [] ) {
 		$row = [];
 
 		foreach ( $field_map as $mapping ) {
@@ -141,13 +136,7 @@ class GFGS_Field_Mapper {
 	 * @param  string|null $date_format PHP date format string for date fields (optional).
 	 * @return string
 	 */
-	public static function resolve_value(
-		$field_id,
-		string $field_type,
-		array $entry,
-		array $form,
-		?string $date_format = null
-	): string {
+	public static function resolve_value( $field_id, $field_type, $entry, $form, $date_format = null ) {
 		if ( 'custom' === $field_type ) {
 			return self::interpolate_custom( (string) $field_id, $entry, $form );
 		}
@@ -187,7 +176,7 @@ class GFGS_Field_Mapper {
 	 * @param  array $form       GF form array.
 	 * @return bool
 	 */
-	public static function check_conditions( array $conditions, array $entry, array $form ): bool {
+	public static function check_conditions( $conditions, $entry, $form ) {
 		if ( empty( $conditions['enabled'] ) || empty( $conditions['rules'] ) ) {
 			return true;
 		}
@@ -223,7 +212,7 @@ class GFGS_Field_Mapper {
 	 * @param  array  $form     GF form array.
 	 * @return string
 	 */
-	private static function interpolate_custom( string $template, array $entry, array $form ): string {
+	private static function interpolate_custom( $template, $entry, $form ) {
 		$lines  = explode( "\n", $template );
 		$output = [];
 
@@ -253,7 +242,7 @@ class GFGS_Field_Mapper {
 	 * @param  array  $form     GF form array.
 	 * @return string
 	 */
-	private static function process_single_line( string $template, array $entry, array $form ): string {
+	private static function process_single_line( $template, $entry, $form ) {
 		preg_match_all( '/\{(\d+)(?:(\.\d+(?:\.\d+)*)|:([\w]+))?\}/', $template, $tag_matches, PREG_SET_ORDER );
 
 		if ( empty( $tag_matches ) ) {
@@ -346,12 +335,7 @@ class GFGS_Field_Mapper {
 	 * @param  string|null $modifier Colon-notation modifier (e.g. 'label').
 	 * @return bool
 	 */
-	private static function field_has_entry_value(
-		GF_Field $field,
-		array $entry,
-		?string $dot_part,
-		?string $modifier
-	): bool {
+	private static function field_has_entry_value( $field, $entry, $dot_part, $modifier ) {
 		if ( null !== $dot_part ) {
 			$val = rgar( $entry, $field->id . $dot_part );
 			return null !== $val && '' !== $val;
@@ -413,16 +397,10 @@ class GFGS_Field_Mapper {
 	 * @param  mixed       $loop_context Current loop value (sub-input index or choice value).
 	 * @return string
 	 */
-	private static function process_template_tags(
-		string $template,
-		array $entry,
-		array $form,
-		$loop_id      = null,
-		$loop_context = null
-	): string {
+	private static function process_template_tags( $template, $entry, $form, $loop_id = null, $loop_context = null ) {
 		return preg_replace_callback(
 			'/\{(\d+)(?:(\.\d+(?:\.\d+)*)|:([\w]+))?\}/',
-			static function ( array $matches ) use ( $entry, $form, $loop_id, $loop_context ): string {
+			static function ( array $matches ) use ( $entry, $form, $loop_id, $loop_context ) {
 				$base_id  = $matches[1];
 				$dot_part = ( isset( $matches[2] ) && '' !== $matches[2] ) ? $matches[2] : null;
 				$modifier = ( isset( $matches[3] ) && '' !== $matches[3] ) ? strtolower( $matches[3] ) : null;
@@ -470,11 +448,7 @@ class GFGS_Field_Mapper {
 	 * @param  mixed       $loop_context Current loop context.
 	 * @return string
 	 */
-	private static function resolve_image_choice_in_loop(
-		GF_Field $field,
-		?string $modifier,
-		$loop_context
-	): string {
+	private static function resolve_image_choice_in_loop( $field, $modifier, $loop_context ) {
 		if ( self::is_checkbox_style( $field ) ) {
 			$matched_choice = $field->choices[ $loop_context ] ?? null;
 		} else {
@@ -511,12 +485,7 @@ class GFGS_Field_Mapper {
 	 * @param  array    $form     GF form array.
 	 * @return string
 	 */
-	private static function resolve_named_modifier(
-		GF_Field $field,
-		string $modifier,
-		array $entry,
-		array $form
-	): string {
+	private static function resolve_named_modifier(	$field, $modifier, $entry, $form ) {
 		// Universal modifiers.
 		if ( 'id' === $modifier ) {
 			return (string) $field->id;
@@ -598,7 +567,7 @@ class GFGS_Field_Mapper {
 	 * @param  array    $entry GF entry array.
 	 * @return string
 	 */
-	private static function resolve_image_choice_img_url( GF_Field $field, array $entry ): string {
+	private static function resolve_image_choice_img_url( $field, $entry ) {
 		if ( ! is_array( $field->choices ) || empty( $field->choices ) ) {
 			return '';
 		}
@@ -665,7 +634,7 @@ class GFGS_Field_Mapper {
 	 * @param  string   $modifier 'label' or 'value'.
 	 * @return string  Comma-separated values for multi-select, single string otherwise.
 	 */
-	private static function resolve_choice_modifier( GF_Field $field, array $entry, string $modifier ): string {
+	private static function resolve_choice_modifier( $field, $entry, $modifier ) {
 		$items = [];
 
 		if ( self::is_checkbox_style( $field ) ) {
@@ -722,7 +691,7 @@ class GFGS_Field_Mapper {
 	 * @param  array  $form           GF form array.
 	 * @return string
 	 */
-	private static function resolve_modifier( string $field_modifier, array $entry, array $form ): string {
+	private static function resolve_modifier( $field_modifier, $entry, $form ) {
 		[ $raw_id, $modifier ] = array_pad( explode( ':', $field_modifier, 2 ), 2, 'value' );
 
 		$modifier = strtolower( trim( $modifier ) );
@@ -743,11 +712,7 @@ class GFGS_Field_Mapper {
 	 * @param  mixed    $context  Sub-input index (checkbox) or choice value string.
 	 * @return string
 	 */
-	private static function resolve_single_choice_from_loop(
-		GF_Field $field,
-		string $modifier,
-		$context
-	): string {
+	private static function resolve_single_choice_from_loop( $field, $modifier,	$context ) {
 		$choice = null;
 
 		if ( self::is_checkbox_style( $field ) ) {
@@ -779,7 +744,7 @@ class GFGS_Field_Mapper {
 	 * @param  array  $entry    GF entry array.
 	 * @return string
 	 */
-	private static function resolve_meta( string $field_id, array $entry ): string {
+	private static function resolve_meta( $field_id, $entry ) {
 		// Some meta keys use different keys inside the entry array.
 		$key_map = [
 			'entry_id' => 'id',
@@ -804,7 +769,7 @@ class GFGS_Field_Mapper {
 	 * @param  array    $entry GF entry array.
 	 * @return string
 	 */
-	public static function format_field( GF_Field $field, array $entry ): string {
+	public static function format_field( $field, $entry ) {
 		$method = 'format_' . $field->type;
 
 		if ( method_exists( __CLASS__, $method ) ) {
@@ -816,9 +781,12 @@ class GFGS_Field_Mapper {
 
  	/**
 	 * Format an image_choice field — resolves stored values to display labels.
-	 *
+	 * 
+	 * @param GF_Field $field GF Field object.
+	 * @param  array    $entry GF entry array.
+	 * @return string
 	 */
-	private static function format_image_choice( GF_Field $field, array $entry ): string {
+	private static function format_image_choice( $field, $entry ) {
 		if ( self::is_checkbox_style( $field ) ) {
 			$labels = [];
 			foreach ( (array) $field->inputs as $index => $input ) {
@@ -857,8 +825,14 @@ class GFGS_Field_Mapper {
 		return $resolve_label( trim( (string) $raw ) );
 	}
 
- 	/** @since 1.0.0 */
-	private static function format_multi_choice( GF_Field $field, array $entry ): string {
+ 	/**
+	 * Format multi choice values.
+	 * 
+	 * @param GF_Field $field GF Field object.
+	 * @param  array    $entry GF entry array.
+	 * @return string
+	 */
+	private static function format_multi_choice( $field, $entry ) {
 		if ( self::is_checkbox_style( $field ) ) {
 			$checked = [];
 			foreach ( (array) $field->inputs as $index => $input ) {
@@ -874,8 +848,14 @@ class GFGS_Field_Mapper {
 		return implode( "\n", self::normalize_multi_values( rgar( $entry, $field->id ) ) );
 	}
 
-	/** @since 1.0.0 */
-	private static function format_checkbox( GF_Field $field, array $entry ): string {
+	/**
+	 * Format checkbox values.
+	 * 
+	 * @param GF_Field $field GF Field object.
+	 * @param  array    $entry GF entry array.
+	 * @return string
+	 */
+	private static function format_checkbox( $field, $entry ) {
 		$checked = [];
 		foreach ( (array) $field->inputs as $index => $input ) {
 			if ( rgar( $entry, (string) $input['id'] ) ) {
@@ -888,13 +868,25 @@ class GFGS_Field_Mapper {
 		return implode( "\n", $checked );
 	}
 
-	/** @since 1.0.0 */
-	private static function format_multiselect( GF_Field $field, array $entry ): string {
+	/**
+	 * Format multi select values.
+	 * 
+	 * @param GF_Field $field GF Field object.
+	 * @param  array    $entry GF entry array.
+	 * @return string
+	 */
+	private static function format_multiselect( $field, $entry ) {
 		return implode( "\n", self::normalize_multi_values( rgar( $entry, $field->id ) ) );
 	}
 
-	/** @since 1.0.0 */
-	private static function format_name( GF_Field $field, array $entry ): string {
+	/**
+	 * Format name.
+	 * 
+	 * @param GF_Field $field GF Field object.
+	 * @param  array    $entry GF entry array.
+	 * @return string
+	 */
+	private static function format_name( $field, $entry ) {
 		return trim( implode( ' ', array_filter( [
 			rgar( $entry, $field->id . '.2' ),
 			rgar( $entry, $field->id . '.3' ),
@@ -902,8 +894,14 @@ class GFGS_Field_Mapper {
 		] ) ) );
 	}
 
-	/** @since 1.0.0 */
-	private static function format_address( GF_Field $field, array $entry ): string {
+	/**
+	 * Format an address.
+	 * 
+	 * @param GF_Field $field GF Field object.
+	 * @param  array    $entry GF entry array.
+	 * @return string
+	 */
+	private static function format_address( $field, $entry ) {
 		return implode( ', ', array_filter( [
 			rgar( $entry, $field->id . '.1' ),
 			rgar( $entry, $field->id . '.2' ),
@@ -914,19 +912,37 @@ class GFGS_Field_Mapper {
 		] ) );
 	}
 
-
-	/** @since 1.0.0 */
-	private static function format_fileupload( GF_Field $field, array $entry ): string {
+ 	/**
+	 * Format fileupload.
+	 * 
+	 * @param GF_Field $field GF Field object.
+	 * @param  array    $entry GF entry array.
+	 * @return string
+	 */
+	private static function format_fileupload( $field, $entry ) {
 		$val = rgar( $entry, $field->id );
-		if ( $field->multipleFiles ) {
-			$files = json_decode( $val, true );
-			return is_array( $files ) ? implode( "\n", $files ) : (string) $val;
+
+		if(is_array($val)){
+			return implode("\n", $val);
 		}
+
+		$files = json_decode( $val, true );
+
+		if(json_last_error() === JSON_ERROR_NONE && is_array($files)){
+			return implode("\n", $files);
+		}
+
 		return (string) $val;
 	}
 
-	/** @since 1.0.0 */
-	private static function format_list( GF_Field $field, array $entry ): string {
+	/**
+	 * Format list.
+	 * 
+	 * @param GF_Field $field GF Field object.
+	 * @param  array    $entry GF entry array.
+	 * @return string
+	 */
+	private static function format_list( $field, $entry ) {
 		$val = rgar( $entry, $field->id );
 		if ( is_string( $val ) ) {
 			$val = maybe_unserialize( $val );
@@ -949,8 +965,14 @@ class GFGS_Field_Mapper {
 		return implode( "\n", $lines );
 	}
 
-	/** @since 1.0.0 */
-	private static function format_product( GF_Field $field, array $entry ): string {
+	/**
+	 * Format product.
+	 * 
+	 * @param GF_Field $field GF Field object.
+	 * @param  array    $entry GF entry array.
+	 * @return string
+	 */
+	private static function format_product( $field, $entry ) {
 		$product_name = '';
 		$price        = '';
 		$qty          = '';
@@ -1001,7 +1023,7 @@ class GFGS_Field_Mapper {
 	 * @param  string   $date_format PHP date() format string, or 'timestamp'.
 	 * @return string
 	 */
-	private static function format_date_field( GF_Field $field, array $entry, string $date_format ): string {
+	private static function format_date_field( $field, $entry, $date_format ) {
 		$raw = rgar( $entry, $field->id );
 		if ( empty( $raw ) ) {
 			return '';
@@ -1023,7 +1045,7 @@ class GFGS_Field_Mapper {
 	 * @param  GF_Field $field GF field object.
 	 * @return bool
 	 */
-	private static function is_multi_choice( GF_Field $field ): bool {
+	private static function is_multi_choice( $field ) {
 		if ( in_array( $field->type, [ 'checkbox', 'multiselect', 'multi_choice' ], true ) ) {
 			return true;
 		}
@@ -1041,7 +1063,7 @@ class GFGS_Field_Mapper {
 	 * @param  GF_Field $field GF field object.
 	 * @return bool
 	 */
-	private static function is_checkbox_style( GF_Field $field ): bool {
+	private static function is_checkbox_style( $field ) {
 		return 'checkbox' === $field->type
 			|| ( 'multi_choice'   === $field->type && 'checkbox' === $field->inputType )
 			|| ( 'image_choice'   === $field->type && 'checkbox' === $field->inputType );
@@ -1053,7 +1075,7 @@ class GFGS_Field_Mapper {
 	 * @param  GF_Field $field GF field object.
 	 * @return bool
 	 */
-	private static function has_choices( GF_Field $field ): bool {
+	private static function has_choices( $field ) {
 		return ! empty( $field->choices ) && is_array( $field->choices );
 	}
 
@@ -1064,7 +1086,7 @@ class GFGS_Field_Mapper {
 	 * @param  mixed $raw Raw entry value.
 	 * @return string[]
 	 */
-	private static function normalize_multi_values( $raw ): array {
+	private static function normalize_multi_values( $raw ) {
 		if ( is_array( $raw ) ) {
 			return array_values( array_filter( array_map( 'trim', $raw ) ) );
 		}
@@ -1087,7 +1109,7 @@ class GFGS_Field_Mapper {
 	 * @param  string $field_id Field ID to locate.
 	 * @return GF_Field|null
 	 */
-	private static function get_field( array $form, string $field_id ): ?GF_Field {
+	private static function get_field( $form, $field_id ) {
 		foreach ( $form['fields'] as $field ) {
 			if ( (string) $field->id === $field_id ) {
 				return $field;
