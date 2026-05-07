@@ -351,8 +351,12 @@ class GFGS_Field_Mapper {
 		}
 
 		if ( 'product' === $field->type ) {
-			$qty = rgar( $entry, $field->id . '.3' );
-			return null !== $qty && '' !== $qty && '0' !== $qty;
+			if ( 'singleproduct' === $field->inputType ) {
+				$price = rgar( $entry, $field->id . '.2' );
+				return null !== $price && '' !== $price;
+			}
+			$val = rgar( $entry, $field->id );
+			return null !== $val && '' !== $val;
 		}
 
 		if ( ! empty( $field->inputs ) && is_array( $field->inputs ) ) {
@@ -1004,7 +1008,7 @@ class GFGS_Field_Mapper {
 			$qty = rgar( $entry, $field->id . '.3' );
 		}
 
-		if ( empty( $product_name ) ) {
+		if ( empty( $product_name ) && 'singleproduct' !== $field->inputType ) {
 			return '';
 		}
 
