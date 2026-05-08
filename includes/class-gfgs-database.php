@@ -515,6 +515,24 @@ class GFGS_Database {
 		}
 	}
 
+	/**
+	 * Update the active status of all feeds belonging to a specific form.
+	 * 
+	 * @param int $form_id The Gravity Forms form ID whose feeds will be updated.
+	 * @param int $status 1 to activate all feeds, 0 to deactivate all feeds.
+	 * 
+	 * @return void
+	 */
+	public static function set_all_feeds_status($form_id, $status){
+		global $wpdb;
+		$wpdb->update(
+			$wpdb->prefix . 'gfgs_feeds',
+			array( 'is_active' => (int) $status ),
+			array( 'form_id'   => (int) $form_id ),
+			array( '%d' ),
+			array( '%d' )
+		);
+	}
 
 	/**
 	 * Toggle a feed's active state.

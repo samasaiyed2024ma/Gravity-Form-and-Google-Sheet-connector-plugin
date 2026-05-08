@@ -157,8 +157,10 @@
 			html += '<div class="gfgs-bulk-actions">' +
 				'<select id="gfgs-bulk-action-selector">' +
 				'<option value="bulk_actions"> Bulk Actions </option>' +
-				'<option value="delete_selected_feeds"> Deleted Selected Feeds </option>' +
+				'<option value="delete_selected_feeds"> Delete Selected Feeds </option>' +
 				'<option value="delete_all_feeds"> Deleted All Feeds </option>' +
+				'<option value="activate_all_feeds"> Activate All Feeds </option>' +
+				'<option value="deactivate_all_feeds"> Deactivate All Feeds </option>' +
 				'</select>' +
 				'<button type="button" id="gfgs-apply-bulk-action" class="apply-btn"> Apply </button>' +
 				'</div>' +
@@ -259,7 +261,7 @@
 		$app.on( 'click', '#gfgs-apply-bulk-action', function(){
 			var action = $('#gfgs-bulk-action-selector').val();
 
-			if(!action){
+			if(!action || action === 'bulk_actions'){
 				alert('Please select an action.');
 				return;
 			}
@@ -289,13 +291,20 @@
 			}
 
 			feedAjax('gfgs_bulk_action', payload, function(response){
-				if(action === 'delete_all_feeds'){
-					state.feeds = [];
-				}else{
-					state.feeds = state.feeds.filter(function(f){
-						return !payload.feed_ids.includes(f.id.toString());
-					});
-				}
+			 if ( action === 'delete_all_feeds' ) {
+				state.feeds = [];
+
+			} else if ( action === 'delete_selected_feeds' ) {
+				state.feeds = state.feeds.filter( function ( f ) {
+					return ! payload.feed_ids.includes( f.id.toString() );
+				} );
+
+			} else if ( action === 'activate_all_feeds' ) {
+				state.feeds.forEach( function ( f ) { f.is_active = 1; } );
+
+			} else if ( action === 'deactivate_all_feeds' ) {
+				state.feeds.forEach( function ( f ) { f.is_active = 0; } );
+			}
 
 				state.notice = {type: 'success', msg: response.data.message};
 				renderFeedList();

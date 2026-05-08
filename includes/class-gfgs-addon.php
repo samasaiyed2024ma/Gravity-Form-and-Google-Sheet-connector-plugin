@@ -1098,6 +1098,22 @@ class GFGS_Addon extends GFFeedAddOn {
 				wp_send_json_success( array( 'message' => 'All feeds deleted.' ) );
 				break;
 
+			case 'activate_all_feeds':
+				if ( ! $form_id ) {
+					wp_send_json_error( array( 'message' => 'Invalid Form ID.' ) );
+				}
+				GFGS_Database::set_all_feeds_status( $form_id, 1 );
+				wp_send_json_success( array( 'message' => 'All feeds activated.' ) );
+				break;
+
+			case 'deactivate_all_feeds':
+				if ( ! $form_id ) {
+					wp_send_json_error( array( 'message' => 'Invalid Form ID.' ) );
+				}
+				GFGS_Database::set_all_feeds_status( $form_id, 0 );
+				wp_send_json_success( array( 'message' => 'All feeds deactivated.' ) );
+				break;
+
 			default:
 				wp_send_json_error( array( 'message' => 'Unknown action.' ) );
 				break;
