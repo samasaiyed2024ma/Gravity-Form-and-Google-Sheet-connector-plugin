@@ -125,6 +125,18 @@ class GFGS_Database {
 		update_option( 'gfgs_db_version', GFGS_VERSION );
 	}
 
+	/**
+	 * Drop all custom database tables created by this plugin.
+	 * Called during plugin deactivation when the user opts to remove all data.
+	 *
+	 * @return void
+	 */
+	public static function drop_tables() {
+		global $wpdb;
+		$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}gfgs_feeds" );
+		$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}gfgs_accounts" );
+	}
+
 	// ── Accounts CRUD ──────────────────────────────────────────────────────────
 
 	/**

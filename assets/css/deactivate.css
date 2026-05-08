@@ -1,0 +1,36 @@
+#gfgs-deactivate-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .5);
+    z-index: 99998;
+}
+
+#gfgs-deactivate-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    border-radius: 6px;
+    padding: 28px 32px;
+    z-index: 99999;
+    width: 420px;
+    max-width: 90vw;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, .18);
+}
+
+#gfgs-deactivate-dialog h3 {
+    margin-top: 0;
+}
+
+#gfgs-deactivate-dialog label {
+    display: block;
+    margin: 16px 0;
+}
+
+#gfgs-deactivate-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}

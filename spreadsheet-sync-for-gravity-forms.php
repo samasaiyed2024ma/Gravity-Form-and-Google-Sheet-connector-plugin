@@ -84,6 +84,10 @@ final class GF_Google_Sheets {
 
         // Register the feed add-on with Gravity Forms.
         GFAddOn::register( 'GFGS_Addon' );
+    
+        add_action( 'admin_footer', [ $this, 'deactivate_modal_html' ] );
+        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_deactivate_script' ] );
+        add_action( 'wp_ajax_gfgs_set_remove_data_flag', [ $this, 'ajax_set_remove_data_flag' ] );
 
         // Stand-alone UI helpers (not a GF add-on, just hooks into WP admin).
         new GFGS_Plugin_Details();
@@ -102,6 +106,93 @@ final class GF_Google_Sheets {
     }
 
     /**
+     * Enqueue the deactivation-dialog script on the Plugins screen only.
+     *
+     * @return void
+     */
+    public function enqueue_deactivate_script() {
+        $screen = get_current_screen();
+        if ( ! $screen || $screen->id !== 'plugins' ) {
+            return;
+        }
+
+        wp_enqueue_script(
+            'gfgs-deactivate',
+            GFGS_PLUGIN_URL . 'assets/js/deactivate.js',
+            [ 'jquery' ],
+            GFGS_VERSION,
+            true
+        );
+
+        wp_enqueue_style(
+            'gfgs-deactivate',
+            GFGS_PLUGIN_URL . 'assets/css/deactivate.css',
+            [],
+            GFGS_VERSION
+        );
+
+        wp_localize_script( 'gfgs-deactivate', 'gfgsDeactivate', [
+            'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
+            'nonce'     => wp_create_nonce( 'gfgs_deactivate' ),
+            'pluginFile'=> GFGS_PLUGIN_BASENAME,
+        ] );
+    }
+
+    /**
+     * Output the deactivation confirmation modal HTML into the admin footer.
+     * Shown only on the Plugins screen.
+     *
+     * @return void
+     */
+    public function deactivate_modal_html() {
+        $screen = get_current_screen();
+        if ( ! $screen || $screen->id !== 'plugins' ) {
+            return;
+        }
+        ?>
+        <div id="gfgs-deactivate-modal" style="display:none;">
+            <div id="gfgs-deactivate-overlay"></div>
+            <div id="gfgs-deactivate-dialog">
+                <h3>Deactivate Google Sheets Connector</h3>
+                <p>Would you like to remove all feeds and database tables created by this plugin?</p>
+                <p><strong>This cannot be undone.</strong></p>
+                <label>
+                    <input type="checkbox" id="gfgs-remove-data">
+                    Yes, delete all plugin data (feeds &amp; tables)
+                </label>
+                <div id="gfgs-deactivate-actions">
+                    <button id="gfgs-deactivate-cancel"  class="button">Cancel</button>
+                    <button id="gfgs-deactivate-confirm" class="button button-primary">Deactivate</button>
+                </div>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * AJAX handler — stores the user's data-removal preference in a transient
+     * so the deactivate() hook can read it immediately after.
+     *
+     * @return void
+     */
+    public function ajax_set_remove_data_flag() {
+        check_ajax_referer( 'gfgs_deactivate', 'nonce' );
+
+        if ( ! current_user_can( 'activate_plugins' ) ) {
+            wp_send_json_error( [ 'message' => 'Unauthorized.' ] );
+        }
+
+        $remove = ! empty( $_POST['remove_data'] );
+        if ( $remove ) {
+            update_option( 'gfgs_remove_data_on_deactivate', 1, false );
+        } else {
+            delete_option( 'gfgs_remove_data_on_deactivate' );
+        }
+
+        wp_send_json_success();
+    }
+
+    /**
 	 * Plugin activation callback — creates database tables.
      * 
 	 * @return void
@@ -114,12 +205,19 @@ final class GF_Google_Sheets {
 	/**
 	 * Plugin deactivation callback.
 	 *
-	 * Currently a no-op. Add cleanup logic here
-	 * (e.g. clearing scheduled events).
+     * If the user opted to remove all data on deactivation,
+     * drops the plugin's custom database tables and clears
+     * any related options.
 	 *
 	 * @return void
 	 */
-    public function deactivate() {}
+    public function deactivate() {
+        if(get_option('gfgs_remove_data_on_deactivate')){
+            require_once GFGS_PLUGIN_DIR . 'includes/class-gfgs-database.php';
+            GFGS_Database::drop_tables();
+            delete_option('gfgs_remove_data_on_deactivate');
+        }
+    }
 }
 
 // Boot the plugin.
