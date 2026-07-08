@@ -133,7 +133,9 @@ class GFGS_Database {
 	 */
 	public static function drop_tables() {
 		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
 		$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}gfgs_feeds" );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
 		$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}gfgs_accounts" );
 	}
 
@@ -537,6 +539,7 @@ class GFGS_Database {
 	 */
 	public static function set_all_feeds_status($form_id, $status){
 		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->update(
 			$wpdb->prefix . 'gfgs_feeds',
 			array( 'is_active' => (int) $status ),
