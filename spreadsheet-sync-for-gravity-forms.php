@@ -151,21 +151,21 @@ final class GF_Google_Sheets {
         }
         ?>
         <div id="gfgs-deactivate-modal" style="display:none;">
-            <div id="gfgs-deactivate-overlay"></div>
-            <div id="gfgs-deactivate-dialog">
-                <h3>Deactivate Google Sheets Connector</h3>
-                <p>Would you like to remove all feeds and database tables created by this plugin?</p>
-                <p><strong>This cannot be undone.</strong></p>
-                <label>
-                    <input type="checkbox" id="gfgs-remove-data">
-                    Yes, delete all plugin data (feeds &amp; tables)
-                </label>
-                <div id="gfgs-deactivate-actions">
-                    <button id="gfgs-deactivate-cancel"  class="button">Cancel</button>
-                    <button id="gfgs-deactivate-confirm" class="button button-primary">Deactivate</button>
-                </div>
-            </div>
-        </div>
+			<div id="gfgs-deactivate-overlay"></div>
+			<div id="gfgs-deactivate-dialog">
+				<h3><?php esc_html_e( 'Deactivate Google Sheets Connector', 'spreadsheet-sync-for-gravity-forms' ); ?></h3>
+				<p><?php esc_html_e( 'Would you like to remove all feeds and database tables created by this plugin?', 'spreadsheet-sync-for-gravity-forms' ); ?></p>
+				<p><strong><?php esc_html_e( 'This cannot be undone.', 'spreadsheet-sync-for-gravity-forms' ); ?></strong></p>
+				<label>
+					<input type="checkbox" id="gfgs-remove-data">
+					<?php esc_html_e( 'Yes, delete all plugin data (feeds & tables)', 'spreadsheet-sync-for-gravity-forms' ); ?>
+				</label>
+				<div id="gfgs-deactivate-actions">
+					<button id="gfgs-deactivate-cancel" class="button"><?php esc_html_e( 'Cancel', 'spreadsheet-sync-for-gravity-forms' ); ?></button>
+					<button id="gfgs-deactivate-confirm" class="button button-primary"><?php esc_html_e( 'Deactivate', 'spreadsheet-sync-for-gravity-forms' ); ?></button>
+				</div>
+			</div>
+		</div>
         <?php
     }
 

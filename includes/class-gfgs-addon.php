@@ -314,8 +314,7 @@ class GFGS_Addon extends GFFeedAddOn {
 		$view          = isset( $_GET['gfgs_view'] ) ? sanitize_text_field( wp_unslash( $_GET['gfgs_view'] ) ) : 'list';
 		$pending_id    = isset( $_GET['gfgs_pending'] ) ? absint( $_GET['gfgs_pending'] ) : 0;
 		$connected_msg = isset( $_GET['connected'] ) ? __( 'Google account connected successfully!', 'spreadsheet-sync-for-gravity-forms' ) : '';
-		$error_msg     = isset( $_GET['gfgs_error'] ) ? urldecode( sanitize_text_field( wp_unslash( $_GET['gfgs_error'] ) ) ) : '';
-		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+		$error_msg = isset( $_GET['gfgs_error'] ) ? sanitize_text_field( urldecode( wp_unslash( $_GET['gfgs_error'] ) ) ) : '';		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		// Load the pending account outside the view check so it is always
 		// available for wp_localize_script (isAuthorized, pendingId).

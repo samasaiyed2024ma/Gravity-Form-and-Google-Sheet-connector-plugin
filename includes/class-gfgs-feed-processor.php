@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class GFGS_Feed_Processor{
+class GFGS_Feed_Processor {
 
     /** @var GFGS_Google_API Injected API client. */
 	private GFGS_Google_API $api;

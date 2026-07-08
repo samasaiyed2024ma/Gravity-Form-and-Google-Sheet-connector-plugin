@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class GFGS_Google_API{
+class GFGS_Google_API {
 
 	// ── Google API endpoint constants ─────────────────────────────────────────
 

@@ -995,7 +995,7 @@ class GFGS_Field_Mapper {
 			if ( is_array( $field->choices ) ) {
 				foreach ( $field->choices as $choice ) {
 					if ( (string) $choice['value'] === (string) $clean_value ) {
-						$price = $choice['price'];
+						$price = $choice['price'] ?? '';
 						break;
 					}
 				}
@@ -1013,8 +1013,12 @@ class GFGS_Field_Mapper {
 		}
 
 		$parts = [ 'Product: ' . $product_name ];
-		if ( '' !== $price ) $parts[] = 'Price: '    . $price;
-		if ( '' !== $qty   ) $parts[] = 'Quantity: ' . $qty;
+		if ( '' !== $price ) {
+			$parts[] = 'Price: '    . $price;
+		}
+		if ( '' !== $qty   ) {
+			$parts[] = 'Quantity: ' . $qty;
+		}
 
 		return implode( ' | ', $parts );
 	}
