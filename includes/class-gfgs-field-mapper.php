@@ -114,16 +114,31 @@ class GFGS_Field_Mapper {
 				continue;
 			}
 
-			$row[ $column ] = self::resolve_value(
-				$gf_field,
-				$field_type,
-				$entry,
-				$form,
-				$date_formats[ $column ] ?? null
+			$row[ $column ] = self::escape_formula(
+				self::resolve_value(
+					$gf_field,
+					$field_type,
+					$entry,
+					$form,
+					$date_formats[ $column ] ?? null
+				)
 			);
 		}
 
 		return $row;
+	}
+
+	/**
+	 * Guard a cell value against spreadsheet formula injection.
+	 *
+	 * @param  mixed $value Resolved cell value.
+	 * @return mixed        Guarded value (string), or the original value unchanged, if it isn't a string or doesn't start with a trigger char.
+	 */
+	private static function escape_formula( $value ) {
+		if ( is_string( $value ) && preg_match( '/^[=+\-@\t\r]/', $value ) ) {
+			return "'" . $value;
+		}
+		return $value;
 	}
 
     /**

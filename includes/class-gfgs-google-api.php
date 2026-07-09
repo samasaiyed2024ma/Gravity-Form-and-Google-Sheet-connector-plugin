@@ -318,6 +318,15 @@ class GFGS_Google_API {
 			return $token;
 		}
  
+		$safe_values = array_map(
+			static function ( $value ) {
+				return ( is_string( $value ) && preg_match( '/^[=+\-@\t\r]/', $value ) )
+					? "'" . $value
+					: $value;
+			},
+			array_values( $row )
+		);
+
 		$url = add_query_arg(
 			[ 'valueInputOption' => 'USER_ENTERED' ],
 			self::SHEETS_API_BASE . '/' . rawurlencode( $spreadsheet_id ) . '/values/' . rawurlencode( $sheet_name ) . ':append'
@@ -328,7 +337,7 @@ class GFGS_Google_API {
 			[
 				'method'  => 'POST',
 				'headers' => array_merge( $this->auth_headers( $token ), [ 'Content-Type' => 'application/json' ] ),
-				'body'    => wp_json_encode( [ 'values' => [ array_values( $row ) ] ] ),
+				'body'    => wp_json_encode( [ 'values' => [ $safe_values ] ] ),
 			]
 		);
  
