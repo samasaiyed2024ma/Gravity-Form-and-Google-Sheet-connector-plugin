@@ -57,7 +57,7 @@ $gfgs_account_count = count( $accounts );
 						</div>
 
 						<div class="gfgs-account-status">
-							<?php if ( $gfgs_account->refresh_token ) : ?>
+							<?php if ( $gfgs_account->is_connected ) : ?>
 								<span class="gfgs-status-dot connected"></span>
 								<span class="gfgs-status-label"><?php esc_html_e( 'Connected', 'spreadsheet-sync-for-gravity-forms' ); ?></span>
 							<?php else : ?>

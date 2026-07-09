@@ -184,7 +184,7 @@ class GFGS_Database {
 	 *
 	 * Result is cached under the key 'gfgs_accounts_all'.
 	 *
-	 * @return object[] Array of row objects: {id, account_name, email, token_expires, refresh_token}.
+	 * @return object[] Array of row objects: {id, account_name, email, token_expires, is_connected}.
 	 */
 	public static function get_accounts() {
 		$cache_key = 'gfgs_accounts_all';
@@ -199,9 +199,10 @@ class GFGS_Database {
 		$table = $wpdb->prefix . self::ACCOUNTS_TABLE;
 
 		$results = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-			'SELECT id, account_name, email, token_expires, refresh_token FROM '
-			. esc_sql( $table )
-			. ' ORDER BY account_name ASC'
+			'SELECT id, account_name, email, token_expires,
+			        ( refresh_token != \'\' ) AS is_connected
+			 FROM ' . esc_sql( $table ) . '
+			 ORDER BY account_name ASC'
 		);
 
 		wp_cache_set( $cache_key, $results, self::CACHE_GROUP, self::CACHE_TTL );
