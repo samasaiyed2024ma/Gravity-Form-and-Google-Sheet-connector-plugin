@@ -385,3 +385,7 @@
 .gfgs-sidebar-row a:hover{
     color: crimson;
 }
+
+.gfgs-sidebar-btn{
+    padding: 0px 10px !important;
+}
