@@ -1,9 +1,9 @@
 === Connect Gravity Forms with Google Sheets ===
 Contributors: mervanagency
 Tags: gravity forms, google sheets, form integration, spreadsheet, automation
-Requires at least: 5.8
+Requires at least: 6.5
 Tested up to: 7.0
-Requires PHP: 7.4
+Requires PHP: 8.1
 Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -208,7 +208,7 @@ This plugin connects to Google's APIs to send form data to Google Sheets.
 
 == Requirements ==
 
-* WordPress 5.8 or higher
-* PHP 7.4 or higher
+* WordPress 6.5 or higher
+* PHP 8.1 or higher
 * Gravity Forms 2.6 or higher
 * A Google account with access to Google Cloud Console

@@ -278,6 +278,7 @@ class GFGS_Addon extends GFFeedAddOn {
 	 * @return void
 	 */
 	private function render_template( $template, $data = array() ) {
+		GFGS_Assets::enqueue_admin_assets();
 		$file = GFGS_PLUGIN_DIR . 'templates/' . $template . '.php';
 
 		if ( ! file_exists( $file ) ) {
