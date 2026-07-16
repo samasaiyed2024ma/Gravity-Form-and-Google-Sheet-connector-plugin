@@ -672,7 +672,8 @@ class GFGS_Database {
 
 		// Cast is_active to int so JS receives 0 or 1, not the string "0"
 		// which is truthy in JavaScript.
-		$row->is_active = (int) ( $row->is_active ? $row->is_active : 1 );
+		//$row->is_active = (int) ( $row->is_active ? $row->is_active : 1 );
+		$row->is_active = isset( $row->is_active ) ? (int) $row->is_active : 1;
 
 		return $row;
 	}
